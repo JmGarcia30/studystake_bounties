@@ -1,4 +1,13 @@
 # StudyStake Bounties
+
+## CONTRACT ID:
+CCBX6U53X2KWE3X3W6SRXDFQCWOPNIURX5Q35YKL2WVJX3OO6DRBTIE6
+
+## CONTRACT LINK: 
+https://stellar.expert/explorer/testnet/contract/CCBX6U53X2KWE3X3W6SRXDFQCWOPNIURX5Q35YKL2WVJX3OO6DRBTIE6
+
+![PICTURE](Stellar_GarciaJM.png)
+
 A decentralized micro-task board built on Stellar Soroban for student peer-tutoring.
 
 ## Problem & Solution
