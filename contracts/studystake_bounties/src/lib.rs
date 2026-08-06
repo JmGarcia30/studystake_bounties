@@ -1,39 +1,12 @@
 #![no_std]
-// The `events().publish` call below is deprecated in favor of `#[contractevent]` structs,
-// but that macro is still evolving in SDK 25; the plain publish API is stable and sufficient
-// for the simple activity-feed events this contract emits.
-#![allow(deprecated)]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env};
+use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env};
 
+mod error;
 mod test;
+mod types;
 
-// Define the states a bounty can be in
-#[derive(Clone, PartialEq, Eq)]
-#[contracttype]
-pub enum BountyStatus {
-    Open,       // Funds locked, waiting for a tutor
-    Accepted,   // Tutor assigned, work in progress
-    Disputed,   // Dispute raised, waiting for admin
-    Completed,  // Funds released to tutor
-}
-
-#[contracttype]
-pub enum DataKey {
-    BountyCounter, // Tracks the global ID
-    Bounty(u32),   // Stores individual bounties by ID
-    Admin,         // Stores the admin address for disputes
-}
-
-#[derive(Clone)]
-#[contracttype]
-pub struct Bounty {
-    pub id: u32,
-    pub buyer: Address,
-    pub tutor: Option<Address>,
-    pub token: Address,
-    pub amount: i128,
-    pub status: BountyStatus,
-}
+pub use error::Error;
+pub use types::{Bounty, BountyStatus, DataKey};
 
 #[contract]
 pub struct StudyStakeBounties;
@@ -41,28 +14,42 @@ pub struct StudyStakeBounties;
 #[contractimpl]
 impl StudyStakeBounties {
     // 1. Initialize the contract with a trusted dispute admin (Student Council)
-    pub fn initialize(env: Env, admin: Address) {
+    pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
         if env.storage().instance().has(&DataKey::Admin) {
-            panic!("Already initialized");
+            return Err(Error::AlreadyInitialized);
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::BountyCounter, &0u32);
+        Ok(())
     }
 
     // 2. Buyer creates a bounty and locks funds in the contract
-    pub fn create_bounty(env: Env, buyer: Address, token: Address, amount: i128) -> u32 {
+    // `events().publish` is deprecated in favor of `#[contractevent]` structs,
+    // but that macro is still evolving in SDK 25; the plain publish API is
+    // stable and sufficient for the simple activity-feed events this contract emits.
+    #[allow(deprecated)]
+    pub fn create_bounty(
+        env: Env,
+        buyer: Address,
+        token: Address,
+        amount: i128,
+    ) -> Result<u32, Error> {
         buyer.require_auth();
-        
+
         if amount <= 0 {
-            panic!("Amount must be greater than zero");
+            return Err(Error::InvalidAmount);
         }
 
         // Transfer funds from buyer to the contract (Escrow)
-        let token_client = token::Client::new(&env, &token);
+        let token_client = token::TokenClient::new(&env, &token);
         token_client.transfer(&buyer, &env.current_contract_address(), &amount);
 
         // Generate ID and store bounty
-        let mut counter: u32 = env.storage().instance().get(&DataKey::BountyCounter).unwrap();
+        let mut counter: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::BountyCounter)
+            .ok_or(Error::NotInitialized)?;
         counter += 1;
 
         let bounty = Bounty {
@@ -74,26 +61,35 @@ impl StudyStakeBounties {
             status: BountyStatus::Open,
         };
 
-        env.storage().instance().set(&DataKey::Bounty(counter), &bounty);
-        env.storage().instance().set(&DataKey::BountyCounter, &counter);
+        env.storage()
+            .instance()
+            .set(&DataKey::Bounty(counter), &bounty);
+        env.storage()
+            .instance()
+            .set(&DataKey::BountyCounter, &counter);
 
         env.events().publish(
             (symbol_short!("bounty"), symbol_short!("created")),
             (counter, bounty.buyer.clone(), bounty.amount),
         );
 
-        counter
+        Ok(counter)
     }
 
     // 3. Tutor accepts the bounty
-    pub fn accept_bounty(env: Env, tutor: Address, bounty_id: u32) {
+    #[allow(deprecated)]
+    pub fn accept_bounty(env: Env, tutor: Address, bounty_id: u32) -> Result<(), Error> {
         tutor.require_auth();
 
         let key = DataKey::Bounty(bounty_id);
-        let mut bounty: Bounty = env.storage().instance().get(&key).expect("Bounty not found");
+        let mut bounty: Bounty = env
+            .storage()
+            .instance()
+            .get(&key)
+            .ok_or(Error::BountyNotFound)?;
 
         if bounty.status != BountyStatus::Open {
-            panic!("Bounty is not open for acceptance");
+            return Err(Error::NotOpen);
         }
 
         bounty.tutor = Some(tutor.clone());
@@ -104,61 +100,84 @@ impl StudyStakeBounties {
             (symbol_short!("bounty"), symbol_short!("accepted")),
             (bounty_id, tutor, bounty.amount),
         );
+
+        Ok(())
     }
 
     // 4. Buyer releases funds after work is complete (Happy Path)
-    pub fn release_funds(env: Env, buyer: Address, bounty_id: u32) {
+    #[allow(deprecated)]
+    pub fn release_funds(env: Env, buyer: Address, bounty_id: u32) -> Result<(), Error> {
         buyer.require_auth();
 
         let key = DataKey::Bounty(bounty_id);
-        let mut bounty: Bounty = env.storage().instance().get(&key).expect("Bounty not found");
+        let mut bounty: Bounty = env
+            .storage()
+            .instance()
+            .get(&key)
+            .ok_or(Error::BountyNotFound)?;
 
         if bounty.buyer != buyer {
-            panic!("Only the buyer can release funds");
+            return Err(Error::NotBuyer);
         }
         if bounty.status != BountyStatus::Accepted {
-            panic!("Bounty is not in an accepted state");
+            return Err(Error::NotAccepted);
         }
 
-        let tutor = bounty.tutor.clone().expect("No tutor assigned");
+        let tutor = bounty.tutor.clone().ok_or(Error::NoTutor)?;
 
         // Mark completed and transfer funds to tutor
         bounty.status = BountyStatus::Completed;
         env.storage().instance().set(&key, &bounty);
 
-        let token_client = token::Client::new(&env, &bounty.token);
+        let token_client = token::TokenClient::new(&env, &bounty.token);
         token_client.transfer(&env.current_contract_address(), &tutor, &bounty.amount);
 
         env.events().publish(
             (symbol_short!("bounty"), symbol_short!("released")),
             (bounty_id, tutor, bounty.amount),
         );
+
+        Ok(())
     }
 
     // 5. Admin resolves a dispute (Optional Edge Feature)
-    pub fn resolve_dispute(env: Env, admin: Address, bounty_id: u32, favor_buyer: bool) {
+    #[allow(deprecated)]
+    pub fn resolve_dispute(
+        env: Env,
+        admin: Address,
+        bounty_id: u32,
+        favor_buyer: bool,
+    ) -> Result<(), Error> {
         admin.require_auth();
 
-        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).expect("Not initialized");
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(Error::NotInitialized)?;
         if admin != stored_admin {
-            panic!("Only the authorized admin can resolve disputes");
+            return Err(Error::NotAdmin);
         }
 
         let key = DataKey::Bounty(bounty_id);
-        let mut bounty: Bounty = env.storage().instance().get(&key).expect("Bounty not found");
+        let mut bounty: Bounty = env
+            .storage()
+            .instance()
+            .get(&key)
+            .ok_or(Error::BountyNotFound)?;
 
         if bounty.status == BountyStatus::Completed {
-            panic!("Bounty is already completed");
+            return Err(Error::AlreadyCompleted);
         }
 
         bounty.status = BountyStatus::Completed;
         env.storage().instance().set(&key, &bounty);
 
-        let token_client = token::Client::new(&env, &bounty.token);
+        let token_client = token::TokenClient::new(&env, &bounty.token);
         let recipient = if favor_buyer {
             bounty.buyer
         } else {
-            bounty.tutor.expect("No tutor assigned")
+            bounty.tutor.ok_or(Error::NoTutor)?
         };
 
         // Route funds to the winner of the dispute
@@ -168,6 +187,8 @@ impl StudyStakeBounties {
             (symbol_short!("bounty"), symbol_short!("resolved")),
             (bounty_id, recipient, bounty.amount),
         );
+
+        Ok(())
     }
 
     // 6. Read a single bounty by id (read-only, no auth required)

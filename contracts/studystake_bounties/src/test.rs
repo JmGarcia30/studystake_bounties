@@ -1,9 +1,9 @@
 #![cfg(test)]
 
 mod tests {
+    use crate::{Error, StudyStakeBounties, StudyStakeBountiesClient};
     use soroban_sdk::testutils::Address as _;
     use soroban_sdk::{token, Address, Env};
-    use crate::{StudyStakeBounties, StudyStakeBountiesClient};
 
     /// Registers the contract and a funded test token, initializes the contract,
     /// and returns the ids needed to build clients in each test.
@@ -60,7 +60,6 @@ mod tests {
 
     // Test 2 (Edge case): Unauthorized caller tries to release funds
     #[test]
-    #[should_panic(expected = "Only the buyer can release funds")]
     fn test_unauthorized_release() {
         let env = Env::default();
         let (contract_id, _admin, buyer, tutor, token_id) = setup_test(&env);
@@ -72,7 +71,8 @@ mod tests {
         client.accept_bounty(&tutor, &bounty_id);
 
         // A different address tries to release the funds
-        client.release_funds(&fake_buyer, &bounty_id);
+        let result = client.try_release_funds(&fake_buyer, &bounty_id);
+        assert_eq!(result, Err(Ok(Error::NotBuyer)));
     }
 
     // Test 3 (State verification): Verify dispute resolution routing to tutor
@@ -115,7 +115,6 @@ mod tests {
 
     // Test 5 (Edge case): Prevent double acceptance
     #[test]
-    #[should_panic(expected = "Bounty is not open for acceptance")]
     fn test_double_acceptance() {
         let env = Env::default();
         let (contract_id, _admin, buyer, tutor, token_id) = setup_test(&env);
@@ -128,6 +127,7 @@ mod tests {
         client.accept_bounty(&tutor, &bounty_id);
 
         // Second tutor tries to accept an already accepted bounty
-        client.accept_bounty(&tutor_2, &bounty_id);
+        let result = client.try_accept_bounty(&tutor_2, &bounty_id);
+        assert_eq!(result, Err(Ok(Error::NotOpen)));
     }
 }
