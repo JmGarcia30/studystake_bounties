@@ -8,6 +8,9 @@ mod tests {
     use soroban_sdk::testutils::storage::Persistent as _;
     use soroban_sdk::testutils::{Address as _, Events as _, Ledger as _};
     use soroban_sdk::{symbol_short, token, vec, Address, Env, IntoVal};
+    use studystake_reputation::{
+        Error as ReputationCrateError, StudyStakeReputation, StudyStakeReputationClient,
+    };
 
     /// Registers the contract and a funded test token, initializes the contract,
     /// and returns the ids needed to build clients in each test.
@@ -436,6 +439,314 @@ mod tests {
                     contract_id.clone(),
                     (symbol_short!("bounty"), symbol_short!("disputed")).into_val(&env),
                     (bounty_id, buyer.clone(), 7i128).into_val(&env),
+                ),
+            ]
+        );
+    }
+
+    // --- Phase 6: cross-contract integration with studystake_reputation ---
+
+    /// Registers a real studystake_reputation instance, initializes it,
+    /// authorizes `bounty_contract_id` as its sole caller, and links it back
+    /// into the bounty contract via `set_reputation`. Returns the
+    /// reputation contract's id and its own admin address.
+    fn link_reputation(
+        env: &Env,
+        bounty_contract_id: &Address,
+        bounty_admin: &Address,
+    ) -> (Address, Address) {
+        let bounty_client = StudyStakeBountiesClient::new(env, bounty_contract_id);
+
+        let reputation_contract_id = env.register(StudyStakeReputation, ());
+        let reputation_client = StudyStakeReputationClient::new(env, &reputation_contract_id);
+        let reputation_admin = Address::generate(env);
+
+        reputation_client.initialize(&reputation_admin);
+        reputation_client.set_authorized(&reputation_admin, bounty_contract_id);
+
+        bounty_client.set_reputation(bounty_admin, &reputation_contract_id);
+
+        (reputation_contract_id, reputation_admin)
+    }
+
+    // Test 19: The bounty admin can configure the linked reputation contract.
+    #[test]
+    fn test_admin_can_configure_reputation_contract() {
+        let env = Env::default();
+        let (contract_id, admin, _buyer, _tutor, _token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let reputation_contract = Address::generate(&env);
+
+        let result = client.try_set_reputation(&admin, &reputation_contract);
+        assert!(result.is_ok());
+        assert_eq!(client.get_reputation_contract(), Some(reputation_contract));
+    }
+
+    // Test 20: A non-admin cannot configure the reputation contract.
+    #[test]
+    fn test_non_admin_cannot_configure_reputation_contract() {
+        let env = Env::default();
+        let (contract_id, _admin, _buyer, _tutor, _token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let outsider = Address::generate(&env);
+        let reputation_contract = Address::generate(&env);
+
+        let result = client.try_set_reputation(&outsider, &reputation_contract);
+        assert_eq!(result, Err(Ok(Error::NotAdmin)));
+    }
+
+    // Test 21: release_funds succeeds normally with no reputation contract configured.
+    #[test]
+    fn test_release_funds_without_reputation_configured_still_succeeds() {
+        let env = Env::default();
+        let (contract_id, _admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &5);
+        client.accept_bounty(&tutor, &bounty_id);
+        client.release_funds(&buyer, &bounty_id);
+
+        assert_eq!(token.balance(&tutor), 5);
+        let bounty = client.get_bounty(&bounty_id).expect("bounty should exist");
+        assert!(matches!(bounty.status, BountyStatus::Completed));
+    }
+
+    // Test 22: release_funds with a configured reputation contract increments
+    // the tutor's completed count and cumulative volume via a real nested call.
+    #[test]
+    fn test_release_funds_with_reputation_increments_tutor_stats() {
+        let env = Env::default();
+        let (contract_id, admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+        let (reputation_contract, _reputation_admin) = link_reputation(&env, &contract_id, &admin);
+        let reputation_client = StudyStakeReputationClient::new(&env, &reputation_contract);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &5);
+        client.accept_bounty(&tutor, &bounty_id);
+        client.release_funds(&buyer, &bounty_id);
+
+        let reputation = reputation_client
+            .get_reputation(&tutor)
+            .expect("reputation should exist");
+        assert_eq!(reputation.completed, 1);
+        assert_eq!(reputation.volume, 5);
+    }
+
+    // Test 23: A second completed bounty increments the totals again correctly.
+    #[test]
+    fn test_second_completed_bounty_increments_totals_again() {
+        let env = Env::default();
+        let (contract_id, admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+        let (reputation_contract, _reputation_admin) = link_reputation(&env, &contract_id, &admin);
+        let reputation_client = StudyStakeReputationClient::new(&env, &reputation_contract);
+
+        let bounty_1 = client.create_bounty(&buyer, &token.address, &5);
+        client.accept_bounty(&tutor, &bounty_1);
+        client.release_funds(&buyer, &bounty_1);
+
+        let bounty_2 = client.create_bounty(&buyer, &token.address, &7);
+        client.accept_bounty(&tutor, &bounty_2);
+        client.release_funds(&buyer, &bounty_2);
+
+        let reputation = reputation_client
+            .get_reputation(&tutor)
+            .expect("reputation should exist");
+        assert_eq!(reputation.completed, 2);
+        assert_eq!(reputation.volume, 12);
+    }
+
+    // Test 24: resolve_dispute in favor of the tutor records reputation.
+    #[test]
+    fn test_resolve_dispute_favor_tutor_records_reputation() {
+        let env = Env::default();
+        let (contract_id, admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+        let (reputation_contract, _reputation_admin) = link_reputation(&env, &contract_id, &admin);
+        let reputation_client = StudyStakeReputationClient::new(&env, &reputation_contract);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &10);
+        client.accept_bounty(&tutor, &bounty_id);
+        client.dispute_bounty(&buyer, &bounty_id);
+        client.resolve_dispute(&admin, &bounty_id, &false);
+
+        let reputation = reputation_client
+            .get_reputation(&tutor)
+            .expect("reputation should exist");
+        assert_eq!(reputation.completed, 1);
+        assert_eq!(reputation.volume, 10);
+    }
+
+    // Test 25: resolve_dispute in favor of the buyer does not record reputation.
+    #[test]
+    fn test_resolve_dispute_favor_buyer_does_not_record_reputation() {
+        let env = Env::default();
+        let (contract_id, admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+        let (reputation_contract, _reputation_admin) = link_reputation(&env, &contract_id, &admin);
+        let reputation_client = StudyStakeReputationClient::new(&env, &reputation_contract);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &10);
+        client.accept_bounty(&tutor, &bounty_id);
+        client.dispute_bounty(&tutor, &bounty_id);
+        client.resolve_dispute(&admin, &bounty_id, &true);
+
+        assert!(reputation_client.get_reputation(&tutor).is_none());
+    }
+
+    // Test 26: An unrelated address still cannot call record_completion
+    // directly on the real linked reputation contract.
+    #[test]
+    fn test_unauthorized_external_address_cannot_call_record_completion_directly() {
+        let env = Env::default();
+        let (contract_id, admin, _buyer, tutor, _token_id) = setup_test(&env);
+        let (reputation_contract, _reputation_admin) = link_reputation(&env, &contract_id, &admin);
+        let reputation_client = StudyStakeReputationClient::new(&env, &reputation_contract);
+        let outsider = Address::generate(&env);
+
+        let result = reputation_client.try_record_completion(&outsider, &tutor, &5);
+        assert_eq!(result, Err(Ok(ReputationCrateError::UnauthorizedCaller)));
+    }
+
+    // Test 27: If the reputation contract is configured to authorize a
+    // DIFFERENT contract address than this real bounty contract, the nested
+    // record_completion call is genuinely rejected, and that failure fails
+    // the whole release_funds transaction — proving the caller address the
+    // bounty contract passes is its own real address, not a forged one.
+    #[test]
+    fn test_misconfigured_authorization_fails_combined_transaction() {
+        let env = Env::default();
+        let (contract_id, admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+
+        let reputation_contract = env.register(StudyStakeReputation, ());
+        let reputation_client = StudyStakeReputationClient::new(&env, &reputation_contract);
+        let reputation_admin = Address::generate(&env);
+        let wrong_authorized_contract = Address::generate(&env);
+        reputation_client.initialize(&reputation_admin);
+        reputation_client.set_authorized(&reputation_admin, &wrong_authorized_contract);
+
+        client.set_reputation(&admin, &reputation_contract);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &5);
+        client.accept_bounty(&tutor, &bounty_id);
+
+        let result = client.try_release_funds(&buyer, &bounty_id);
+        assert!(result.is_err());
+    }
+
+    // Test 28: On that failed nested call, bounty state, token balances, and
+    // reputation data all remain exactly as they were before the attempt —
+    // the token transfer and status update rolled back with the nested failure.
+    #[test]
+    fn test_failed_nested_call_leaves_state_unchanged() {
+        let env = Env::default();
+        let (contract_id, admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+
+        let reputation_contract = env.register(StudyStakeReputation, ());
+        let reputation_client = StudyStakeReputationClient::new(&env, &reputation_contract);
+        let reputation_admin = Address::generate(&env);
+        let wrong_authorized_contract = Address::generate(&env);
+        reputation_client.initialize(&reputation_admin);
+        reputation_client.set_authorized(&reputation_admin, &wrong_authorized_contract);
+
+        client.set_reputation(&admin, &reputation_contract);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &5);
+        client.accept_bounty(&tutor, &bounty_id);
+
+        let buyer_balance_before = token.balance(&buyer);
+        let tutor_balance_before = token.balance(&tutor);
+        let contract_balance_before = token.balance(&client.address);
+
+        let _ = client.try_release_funds(&buyer, &bounty_id);
+
+        let bounty = client
+            .get_bounty(&bounty_id)
+            .expect("bounty should still exist");
+        assert!(matches!(bounty.status, BountyStatus::Accepted));
+
+        assert_eq!(token.balance(&buyer), buyer_balance_before);
+        assert_eq!(token.balance(&tutor), tutor_balance_before);
+        assert_eq!(token.balance(&client.address), contract_balance_before);
+
+        assert!(reputation_client.get_reputation(&tutor).is_none());
+    }
+
+    // Test 29: Reputation is not recorded twice for the same bounty — a
+    // second release attempt is rejected by the bounty contract's own state
+    // machine before any nested call is made.
+    #[test]
+    fn test_reputation_not_recorded_twice_for_same_bounty() {
+        let env = Env::default();
+        let (contract_id, admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+        let (reputation_contract, _reputation_admin) = link_reputation(&env, &contract_id, &admin);
+        let reputation_client = StudyStakeReputationClient::new(&env, &reputation_contract);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &5);
+        client.accept_bounty(&tutor, &bounty_id);
+        client.release_funds(&buyer, &bounty_id);
+
+        let result = client.try_release_funds(&buyer, &bounty_id);
+        assert_eq!(result, Err(Ok(Error::NotAccepted)));
+
+        let reputation = reputation_client
+            .get_reputation(&tutor)
+            .expect("reputation should exist");
+        assert_eq!(reputation.completed, 1);
+        assert_eq!(reputation.volume, 5);
+    }
+
+    // Test 30: Both the bounty contract's "released" event and the
+    // reputation contract's "recorded" event are emitted during a single
+    // successful completion, with the reputation event coming from the real
+    // nested invocation (not a separate test-driven call).
+    #[test]
+    fn test_both_events_emitted_on_successful_completion() {
+        let env = Env::default();
+        let (contract_id, admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+        let (reputation_contract, _reputation_admin) = link_reputation(&env, &contract_id, &admin);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &5);
+        client.accept_bounty(&tutor, &bounty_id);
+        client.release_funds(&buyer, &bounty_id);
+
+        let all_events = env.events().all();
+
+        let bounty_events = all_events.filter_by_contract(&contract_id);
+        assert_eq!(
+            bounty_events,
+            vec![
+                &env,
+                (
+                    contract_id.clone(),
+                    (symbol_short!("bounty"), symbol_short!("released")).into_val(&env),
+                    (bounty_id, tutor.clone(), 5i128).into_val(&env),
+                ),
+            ]
+        );
+
+        let reputation_events = all_events.filter_by_contract(&reputation_contract);
+        assert_eq!(
+            reputation_events,
+            vec![
+                &env,
+                (
+                    reputation_contract.clone(),
+                    (symbol_short!("reput"), symbol_short!("recorded")).into_val(&env),
+                    (tutor.clone(), 1u32, 5i128, 5i128).into_val(&env),
                 ),
             ]
         );

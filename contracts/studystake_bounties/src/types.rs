@@ -12,9 +12,10 @@ pub enum BountyStatus {
 
 #[contracttype]
 pub enum DataKey {
-    BountyCounter, // Tracks the global ID
-    Bounty(u32),   // Stores individual bounties by ID
-    Admin,         // Stores the admin address for disputes
+    BountyCounter,      // Tracks the global ID
+    Bounty(u32),        // Stores individual bounties by ID
+    Admin,              // Stores the admin address for disputes
+    ReputationContract, // Stores the optional linked reputation contract address
 }
 
 #[derive(Clone)]

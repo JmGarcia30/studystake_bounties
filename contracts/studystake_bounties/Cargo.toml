@@ -13,3 +13,7 @@ soroban-sdk = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+# Test-only: lets integration tests register a real studystake_reputation
+# instance in the same Env to prove genuine cross-contract invocation.
+# Production code never depends on this crate — see src/reputation.rs.
+studystake_reputation = { path = "../studystake_reputation" }

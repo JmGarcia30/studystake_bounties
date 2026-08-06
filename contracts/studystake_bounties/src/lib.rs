@@ -2,10 +2,12 @@
 use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env};
 
 mod error;
+mod reputation;
 mod test;
 mod types;
 
 pub use error::Error;
+pub use reputation::{ReputationClient, ReputationContract, ReputationError};
 pub use types::{Bounty, BountyStatus, DataKey};
 
 /// One ledger closes roughly every 5 seconds on the Stellar network.
@@ -44,6 +46,32 @@ fn save_bounty(env: &Env, bounty_id: u32, bounty: &Bounty) {
     env.storage()
         .persistent()
         .extend_ttl(&key, BOUNTY_TTL_THRESHOLD, BOUNTY_TTL_EXTEND_TO);
+}
+
+/// If a reputation contract is linked, records this tutor's completion
+/// there. No-op if unconfigured, so the bounty contract keeps working
+/// standalone.
+///
+/// Passes `env.current_contract_address()` as the caller so the reputation
+/// contract can verify the call genuinely came from this bounty contract's
+/// own invocation. This call is not wrapped in a try/catch of any kind —
+/// the generated client panics if the reputation contract rejects or fails
+/// the call, and that panic unwinds this entire invocation, so the token
+/// transfer and bounty status update performed earlier in the same
+/// transaction are rolled back too. A tutor is never paid while a
+/// configured reputation update silently fails.
+fn record_reputation(env: &Env, tutor: &Address, amount: i128) {
+    if let Some(reputation_contract) = env
+        .storage()
+        .instance()
+        .get::<_, Address>(&DataKey::ReputationContract)
+    {
+        ReputationClient::new(env, &reputation_contract).record_completion(
+            &env.current_contract_address(),
+            tutor,
+            &amount,
+        );
+    }
 }
 
 #[contract]
@@ -188,8 +216,10 @@ impl StudyStakeBounties {
 
         env.events().publish(
             (symbol_short!("bounty"), symbol_short!("released")),
-            (bounty_id, tutor, bounty.amount),
+            (bounty_id, tutor.clone(), bounty.amount),
         );
+
+        record_reputation(&env, &tutor, bounty.amount);
 
         Ok(())
     }
@@ -234,8 +264,12 @@ impl StudyStakeBounties {
 
         env.events().publish(
             (symbol_short!("bounty"), symbol_short!("resolved")),
-            (bounty_id, recipient, bounty.amount),
+            (bounty_id, recipient.clone(), bounty.amount),
         );
+
+        if !favor_buyer {
+            record_reputation(&env, &recipient, bounty.amount);
+        }
 
         Ok(())
     }
@@ -251,5 +285,35 @@ impl StudyStakeBounties {
             .instance()
             .get(&DataKey::BountyCounter)
             .unwrap_or(0)
+    }
+
+    // 9. Admin links (or relinks) the reputation contract that tutor
+    // completions are reported to. Optional — release_funds and
+    // resolve_dispute work normally with no reputation contract configured.
+    pub fn set_reputation(
+        env: Env,
+        admin: Address,
+        reputation_contract: Address,
+    ) -> Result<(), Error> {
+        admin.require_auth();
+
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(Error::NotInitialized)?;
+        if admin != stored_admin {
+            return Err(Error::NotAdmin);
+        }
+
+        env.storage()
+            .instance()
+            .set(&DataKey::ReputationContract, &reputation_contract);
+        Ok(())
+    }
+
+    // 10. Read the currently linked reputation contract, if any.
+    pub fn get_reputation_contract(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::ReputationContract)
     }
 }
