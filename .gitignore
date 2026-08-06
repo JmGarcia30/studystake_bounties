@@ -3,3 +3,8 @@ test_snapshots/
 frontend/node_modules
 frontend/dist
 frontend/.env
+
+# Deployment: real config (has an identity name, never a secret key) and
+# machine-generated deployment output both stay local.
+/.env.deploy
+/.deployments/
