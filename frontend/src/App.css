@@ -1,0 +1,128 @@
+.app {
+  text-align: left;
+  padding: 24px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+header p {
+  margin-top: 4px;
+}
+
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.panel h3 {
+  margin: 20px 0 8px;
+  font-size: 16px;
+}
+
+.muted {
+  color: var(--text);
+  opacity: 0.7;
+  font-size: 14px;
+}
+
+.error {
+  color: #d33;
+  font-size: 14px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+
+.row input {
+  flex: 1;
+  min-width: 120px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+}
+
+button {
+  padding: 6px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.network-badge {
+  display: inline-block;
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.address code,
+.balance {
+  word-break: break-all;
+}
+
+.balance {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.status {
+  font-weight: 600;
+}
+
+.status-idle {
+  color: var(--text);
+}
+
+.status-pending {
+  color: #d9a441;
+}
+
+.status-success {
+  color: #2a9d5c;
+}
+
+.status-failed {
+  color: #d33;
+}
+
+.activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.activity-list li {
+  font-size: 14px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.bounty-detail {
+  background: var(--code-bg);
+  padding: 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 13px;
+}

@@ -1,5 +1,9 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, token, Address, Env, Symbol};
+// The `events().publish` call below is deprecated in favor of `#[contractevent]` structs,
+// but that macro is still evolving in SDK 25; the plain publish API is stable and sufficient
+// for the simple activity-feed events this contract emits.
+#![allow(deprecated)]
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env};
 
 // Define the states a bounty can be in
 #[derive(Clone, PartialEq, Eq)]
@@ -18,6 +22,7 @@ pub enum DataKey {
     Admin,         // Stores the admin address for disputes
 }
 
+#[derive(Clone)]
 #[contracttype]
 pub struct Bounty {
     pub id: u32,
@@ -69,7 +74,12 @@ impl StudyStakeBounties {
 
         env.storage().instance().set(&DataKey::Bounty(counter), &bounty);
         env.storage().instance().set(&DataKey::BountyCounter, &counter);
-        
+
+        env.events().publish(
+            (symbol_short!("bounty"), symbol_short!("created")),
+            (counter, bounty.buyer.clone(), bounty.amount),
+        );
+
         counter
     }
 
@@ -84,9 +94,14 @@ impl StudyStakeBounties {
             panic!("Bounty is not open for acceptance");
         }
 
-        bounty.tutor = Some(tutor);
+        bounty.tutor = Some(tutor.clone());
         bounty.status = BountyStatus::Accepted;
         env.storage().instance().set(&key, &bounty);
+
+        env.events().publish(
+            (symbol_short!("bounty"), symbol_short!("accepted")),
+            (bounty_id, tutor, bounty.amount),
+        );
     }
 
     // 4. Buyer releases funds after work is complete (Happy Path)
@@ -111,6 +126,11 @@ impl StudyStakeBounties {
 
         let token_client = token::Client::new(&env, &bounty.token);
         token_client.transfer(&env.current_contract_address(), &tutor, &bounty.amount);
+
+        env.events().publish(
+            (symbol_short!("bounty"), symbol_short!("released")),
+            (bounty_id, tutor, bounty.amount),
+        );
     }
 
     // 5. Admin resolves a dispute (Optional Edge Feature)
@@ -141,5 +161,23 @@ impl StudyStakeBounties {
 
         // Route funds to the winner of the dispute
         token_client.transfer(&env.current_contract_address(), &recipient, &bounty.amount);
+
+        env.events().publish(
+            (symbol_short!("bounty"), symbol_short!("resolved")),
+            (bounty_id, recipient, bounty.amount),
+        );
+    }
+
+    // 6. Read a single bounty by id (read-only, no auth required)
+    pub fn get_bounty(env: Env, bounty_id: u32) -> Option<Bounty> {
+        env.storage().instance().get(&DataKey::Bounty(bounty_id))
+    }
+
+    // 7. Read the total number of bounties created so far
+    pub fn get_bounty_count(env: Env) -> u32 {
+        env.storage()
+            .instance()
+            .get(&DataKey::BountyCounter)
+            .unwrap_or(0)
     }
 }
