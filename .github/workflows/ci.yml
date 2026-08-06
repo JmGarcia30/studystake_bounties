@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  contracts:
+    name: Contracts (Rust / Soroban)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ubuntu-latest ships rustup preinstalled. `rustup show` reads
+      # rust-toolchain.toml at the repo root and installs/activates the
+      # pinned channel (1.88.0) automatically — no third-party toolchain
+      # action needed.
+      - name: Install pinned Rust toolchain
+        run: rustup show
+
+      - name: Install wasm32v1-none target
+        run: rustup target add wasm32v1-none
+
+      - name: Cache Cargo dependencies and build output
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run all contract tests
+        run: cargo test --all
+
+      - name: Build contracts (wasm32v1-none release)
+        run: cargo build --target wasm32v1-none --release
+
+      # scripts/deploy.sh requires .env.deploy and a configured Stellar
+      # identity to proceed past its own safety checks — neither exists on
+      # a CI runner (the file is gitignored; there is no persisted
+      # identity), and this phase deliberately does not add either. Syntax
+      # validation is what's actually meaningful here; the Stellar CLI
+      # itself is not installed since nothing in this job invokes it.
+      - name: Validate deploy script syntax
+        run: bash -n scripts/deploy.sh
+
+      - name: Verify expected WASM artifacts exist
+        run: |
+          test -f target/wasm32v1-none/release/studystake_bounties.wasm
+          test -f target/wasm32v1-none/release/studystake_reputation.wasm
+
+      - name: Upload contract WASM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-wasm
+          path: |
+            target/wasm32v1-none/release/studystake_bounties.wasm
+            target/wasm32v1-none/release/studystake_reputation.wasm
+          if-no-files-found: error
+
+  frontend:
+    name: Frontend (React / Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # No VITE_* env vars are set here: verified locally that
+      # `vite build` succeeds with none set (they're read as plain
+      # strings, embedded empty if unset — there is no build-time
+      # validation yet). Not setting them also avoids ever letting a
+      # contract address in a CI-only build artifact be mistaken for
+      # Level 3 deployment proof.
+      - name: Build
+        run: npm run build
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          if-no-files-found: error

@@ -1,0 +1,3 @@
+# Generated Soroban contract bindings — not hand-written app source, and
+# not yet wired into the app (see docs/DEPLOYMENT.md). Don't lint them.
+src/lib/bindings/

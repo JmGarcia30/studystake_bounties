@@ -22,5 +22,10 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Generated Soroban contract bindings (see docs/DEPLOYMENT.md) — not
+  // hand-written app source, not yet wired into the app, and don't conform
+  // to this project's strict compiler options (verbatimModuleSyntax,
+  // erasableSyntaxOnly, noUnusedLocals).
+  "exclude": ["src/lib/bindings"]
 }

@@ -1,5 +1,7 @@
 # StudyStake Bounties
 
+[![CI](https://github.com/JmGarcia30/studystake_bounties/actions/workflows/ci.yml/badge.svg)](https://github.com/JmGarcia30/studystake_bounties/actions/workflows/ci.yml)
+
 ![PICTURE](Stellar_GarciaJM.png)
 
 A decentralized micro-task board built on Stellar Soroban for student peer-tutoring, with a
