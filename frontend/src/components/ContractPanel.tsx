@@ -1,16 +1,7 @@
 import { useState } from "react";
 import { CONTRACT_ID, TOKEN_ID } from "../lib/config";
 import { callContract, readContract, BOUNTY_STATUS_LABELS, type Bounty, type TxStatus } from "../lib/contract";
-
-const STROOPS_PER_XLM = 10_000_000n;
-
-function xlmToStroops(xlm: string): bigint {
-  const value = Number(xlm);
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new Error("Enter a positive amount.");
-  }
-  return BigInt(Math.round(value * Number(STROOPS_PER_XLM)));
-}
+import { xlmToStroops } from "../lib/amount";
 
 interface Props {
   address: string | null;
