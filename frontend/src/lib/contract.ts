@@ -117,11 +117,19 @@ export async function callContract<K extends keyof StudyStakeContract>(
   publicKey: string,
   onStatus: (status: TxStatus) => void,
 ): Promise<TxResult<Awaited<ReturnType<StudyStakeContract[K]>>["result"]>> {
+  if (!publicKey) {
+    return { error: "Connect a wallet before sending a transaction." };
+  }
   onStatus("pending");
   try {
     const client = await getClient();
-    const fn = client[method] as (a: unknown) => Promise<contract.AssembledTransaction<unknown>>;
-    const assembled = await fn(args ?? {});
+    const fn = client[method] as (
+      a: unknown,
+      opts?: { publicKey?: string },
+    ) => Promise<contract.AssembledTransaction<unknown>>;
+    // The connected wallet's address must be the transaction's source account,
+    // not the kit/RPC default — otherwise simulation builds against a placeholder.
+    const assembled = await fn(args ?? {}, { publicKey });
     const sent = await assembled.signAndSend({
       // The kit needs to know which address to request a signature from.
       signTransaction: (xdr, opts) =>
