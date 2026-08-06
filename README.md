@@ -94,16 +94,13 @@ stellar contract invoke \
   -- initialize --admin <YOUR_ADMIN_ADDRESS>
 ```
 
-Copy the resulting contract address into `frontend/.env` as `VITE_CONTRACT_ID`, and into the
-placeholder below.
+Copy the resulting contract address into `frontend/.env` as `VITE_CONTRACT_ID`.
 
-* **Deployed contract address:** `<DEPLOYED_CONTRACT_ADDRESS>`
-  * The address previously recorded here (`CCBX6U53X2KWE3X3W6SRXDFQCWOPNIURX5Q35YKL2WVJX3OO6DRBTIE6`)
-    predates the `get_bounty`/`get_bounty_count`/event additions above and does not have them —
-    redeploy and replace this placeholder (and `frontend/.env`) with the new address.
-* **Sample testnet transaction hash:** `<TESTNET_TRANSACTION_HASH>`
-  * Replace with the hash of a `create_bounty` (or other) call made from the running frontend,
-    visible in the Transaction Status panel after a successful submission.
+## Yellow Belt Level 2 Proof
+
+* **Deployed Contract Address:** `CCEBMZKEH4GBRZVYDDGMSXWCHTL57ZIG6YRVZWRHTU4BP6QZVWQPXI7I`
+* **Contract Deploy Transaction Hash:** `18d81d9cf6470562686116fabaf1a8df0cd95c2fe352b271568fdc86bd29aa19`
+* **Frontend Contract Call Transaction Hash:** `209b1e3965aec3ab66d232de0d0bc32b6f37f172cb13a5be1089b36b749c10fd`
 
 ---
 
@@ -166,19 +163,37 @@ See `frontend/src/lib/wallet.ts` (`toFriendlyError`) for the mapping.
 
 ## Manual setup checklist
 
-- [ ] Install a Stellar wallet browser extension (e.g. [Freighter](https://www.freighter.app/))
+- [x] Install a Stellar wallet browser extension (e.g. [Freighter](https://www.freighter.app/))
       and switch it to **Testnet**.
-- [ ] Fund your wallet address via [Friendbot](https://friendbot.stellar.org/).
-- [ ] Deploy the contract (see above) and fill in `<DEPLOYED_CONTRACT_ADDRESS>` here and in
-      `frontend/.env`.
-- [ ] Call `initialize` once, then use the frontend to create/accept/release a bounty and record
-      the resulting `<TESTNET_TRANSACTION_HASH>`.
-- [ ] Capture screenshots (see checklist below) and add them to this README.
+- [x] Fund your wallet address via [Friendbot](https://friendbot.stellar.org/).
+- [x] Deploy the contract (see above) and fill in the deployed contract address here and in
+      `frontend/.env` — see [Yellow Belt Level 2 Proof](#yellow-belt-level-2-proof).
+- [x] Call `initialize` once, then use the frontend to create/accept/release a bounty and record
+      the resulting transaction hash — see [Yellow Belt Level 2 Proof](#yellow-belt-level-2-proof).
+- [x] Capture remaining screenshots (see checklist below) and add them to this README.
 
-## Screenshots checklist
+## Screenshots
 
-- [ ] Wallet options available (picker modal open)
-- [ ] Wallet connected (public key + testnet badge visible)
-- [ ] Balance displayed
-- [ ] Contract call transaction success (Transaction Status panel showing `success` + tx hash)
-- [ ] Activity/feed status update (Live Activity panel with at least one item)
+
+### Wallet connected
+![Wallet connected](frontend/public/screenshots/wallet-connected.jpg)
+
+### Balance displayed
+![Balance displayed](frontend/public/screenshots/balance-displayed.jpg)
+
+### Contract call transaction success
+![Transaction success](frontend/public/screenshots/transaction-success.jpg)
+
+### Live activity feed
+![Live activity feed](frontend/public/screenshots/live-activity.jpg)
+
+### Bounty read result
+![Bounty read result](frontend/public/screenshots/bounty-read.jpg)
+
+### Screenshots checklist
+
+- [x] Wallet options available (picker modal open)
+- [x] Wallet connected (public key + testnet badge visible)
+- [x] Balance displayed
+- [x] Contract call transaction success (Transaction Status panel showing `success` + tx hash)
+- [x] Activity/feed status update (Live Activity panel with at least one item)
