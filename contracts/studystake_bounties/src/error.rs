@@ -17,4 +17,5 @@ pub enum Error {
     NotAdmin = 8,
     NoTutor = 9,
     AlreadyCompleted = 10,
+    Unauthorized = 11,
 }

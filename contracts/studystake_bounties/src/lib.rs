@@ -135,7 +135,35 @@ impl StudyStakeBounties {
         Ok(())
     }
 
-    // 4. Buyer releases funds after work is complete (Happy Path)
+    // 4. Buyer or assigned tutor raises a dispute on an accepted bounty
+    #[allow(deprecated)]
+    pub fn dispute_bounty(env: Env, caller: Address, bounty_id: u32) -> Result<(), Error> {
+        caller.require_auth();
+
+        let mut bounty = load_bounty(&env, bounty_id)?;
+
+        let is_buyer = caller == bounty.buyer;
+        let is_tutor = bounty.tutor.as_ref() == Some(&caller);
+        if !is_buyer && !is_tutor {
+            return Err(Error::Unauthorized);
+        }
+
+        if bounty.status != BountyStatus::Accepted {
+            return Err(Error::NotAccepted);
+        }
+
+        bounty.status = BountyStatus::Disputed;
+        save_bounty(&env, bounty_id, &bounty);
+
+        env.events().publish(
+            (symbol_short!("bounty"), symbol_short!("disputed")),
+            (bounty_id, caller, bounty.amount),
+        );
+
+        Ok(())
+    }
+
+    // 5. Buyer releases funds after work is complete (Happy Path)
     #[allow(deprecated)]
     pub fn release_funds(env: Env, buyer: Address, bounty_id: u32) -> Result<(), Error> {
         buyer.require_auth();
@@ -166,7 +194,7 @@ impl StudyStakeBounties {
         Ok(())
     }
 
-    // 5. Admin resolves a dispute (Optional Edge Feature)
+    // 6. Admin resolves a dispute (Optional Edge Feature)
     #[allow(deprecated)]
     pub fn resolve_dispute(
         env: Env,
@@ -212,12 +240,12 @@ impl StudyStakeBounties {
         Ok(())
     }
 
-    // 6. Read a single bounty by id (read-only, no auth required)
+    // 7. Read a single bounty by id (read-only, no auth required)
     pub fn get_bounty(env: Env, bounty_id: u32) -> Option<Bounty> {
         load_bounty(&env, bounty_id).ok()
     }
 
-    // 7. Read the total number of bounties created so far
+    // 8. Read the total number of bounties created so far
     pub fn get_bounty_count(env: Env) -> u32 {
         env.storage()
             .instance()

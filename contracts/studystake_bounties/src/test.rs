@@ -6,8 +6,8 @@ mod tests {
         BOUNTY_TTL_EXTEND_TO, BOUNTY_TTL_THRESHOLD, LEDGERS_PER_DAY,
     };
     use soroban_sdk::testutils::storage::Persistent as _;
-    use soroban_sdk::testutils::{Address as _, Ledger as _};
-    use soroban_sdk::{token, Address, Env};
+    use soroban_sdk::testutils::{Address as _, Events as _, Ledger as _};
+    use soroban_sdk::{symbol_short, token, vec, Address, Env, IntoVal};
 
     /// Registers the contract and a funded test token, initializes the contract,
     /// and returns the ids needed to build clients in each test.
@@ -292,5 +292,152 @@ mod tests {
                 .get_ttl(&DataKey::Bounty(bounty_id))
         });
         assert_eq!(ttl_after_access, BOUNTY_TTL_EXTEND_TO);
+    }
+
+    // Test 11: The buyer can dispute an accepted bounty.
+    #[test]
+    fn test_buyer_can_dispute_accepted_bounty() {
+        let env = Env::default();
+        let (contract_id, _admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &5);
+        client.accept_bounty(&tutor, &bounty_id);
+
+        client.dispute_bounty(&buyer, &bounty_id);
+
+        let bounty = client.get_bounty(&bounty_id).expect("bounty should exist");
+        assert!(matches!(bounty.status, BountyStatus::Disputed));
+    }
+
+    // Test 12: The assigned tutor can dispute an accepted bounty.
+    #[test]
+    fn test_tutor_can_dispute_accepted_bounty() {
+        let env = Env::default();
+        let (contract_id, _admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &5);
+        client.accept_bounty(&tutor, &bounty_id);
+
+        client.dispute_bounty(&tutor, &bounty_id);
+
+        let bounty = client.get_bounty(&bounty_id).expect("bounty should exist");
+        assert!(matches!(bounty.status, BountyStatus::Disputed));
+    }
+
+    // Test 13: An unrelated authenticated address cannot dispute the bounty.
+    #[test]
+    fn test_unrelated_address_cannot_dispute() {
+        let env = Env::default();
+        let (contract_id, _admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+        let outsider = Address::generate(&env);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &5);
+        client.accept_bounty(&tutor, &bounty_id);
+
+        let result = client.try_dispute_bounty(&outsider, &bounty_id);
+        assert_eq!(result, Err(Ok(Error::Unauthorized)));
+    }
+
+    // Test 14: An open bounty (no assigned tutor yet) cannot be disputed,
+    // even by its buyer.
+    #[test]
+    fn test_open_bounty_cannot_be_disputed() {
+        let env = Env::default();
+        let (contract_id, _admin, buyer, _tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &5);
+
+        let result = client.try_dispute_bounty(&buyer, &bounty_id);
+        assert_eq!(result, Err(Ok(Error::NotAccepted)));
+    }
+
+    // Test 15: A completed bounty cannot be disputed.
+    #[test]
+    fn test_completed_bounty_cannot_be_disputed() {
+        let env = Env::default();
+        let (contract_id, _admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &5);
+        client.accept_bounty(&tutor, &bounty_id);
+        client.release_funds(&buyer, &bounty_id);
+
+        let result = client.try_dispute_bounty(&buyer, &bounty_id);
+        assert_eq!(result, Err(Ok(Error::NotAccepted)));
+    }
+
+    // Test 16: An already disputed bounty cannot be disputed again.
+    #[test]
+    fn test_already_disputed_bounty_cannot_be_disputed_again() {
+        let env = Env::default();
+        let (contract_id, _admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &5);
+        client.accept_bounty(&tutor, &bounty_id);
+        client.dispute_bounty(&buyer, &bounty_id);
+
+        let result = client.try_dispute_bounty(&tutor, &bounty_id);
+        assert_eq!(result, Err(Ok(Error::NotAccepted)));
+    }
+
+    // Test 17: resolve_dispute succeeds after dispute_bounty places the
+    // bounty into the Disputed state.
+    #[test]
+    fn test_resolve_dispute_succeeds_after_dispute_bounty() {
+        let env = Env::default();
+        let (contract_id, admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &10);
+        client.accept_bounty(&tutor, &bounty_id);
+        client.dispute_bounty(&tutor, &bounty_id);
+
+        let bounty = client.get_bounty(&bounty_id).expect("bounty should exist");
+        assert!(matches!(bounty.status, BountyStatus::Disputed));
+
+        client.resolve_dispute(&admin, &bounty_id, &false);
+
+        assert_eq!(token.balance(&client.address), 0);
+        assert_eq!(token.balance(&tutor), 10);
+        assert_eq!(token.balance(&buyer), 90);
+    }
+
+    // Test 18: dispute_bounty emits a ("bounty", "disputed") event carrying
+    // the bounty id, the caller who raised the dispute, and the amount.
+    #[test]
+    fn test_dispute_event_emitted() {
+        let env = Env::default();
+        let (contract_id, _admin, buyer, tutor, token_id) = setup_test(&env);
+        let client = StudyStakeBountiesClient::new(&env, &contract_id);
+        let token = token::TokenClient::new(&env, &token_id);
+
+        let bounty_id = client.create_bounty(&buyer, &token.address, &7);
+        client.accept_bounty(&tutor, &bounty_id);
+
+        client.dispute_bounty(&buyer, &bounty_id);
+
+        assert_eq!(
+            env.events().all(),
+            vec![
+                &env,
+                (
+                    contract_id.clone(),
+                    (symbol_short!("bounty"), symbol_short!("disputed")).into_val(&env),
+                    (bounty_id, buyer.clone(), 7i128).into_val(&env),
+                ),
+            ]
+        );
     }
 }
