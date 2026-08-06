@@ -5,6 +5,8 @@
 #![allow(deprecated)]
 use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env};
 
+mod test;
+
 // Define the states a bounty can be in
 #[derive(Clone, PartialEq, Eq)]
 #[contracttype]
