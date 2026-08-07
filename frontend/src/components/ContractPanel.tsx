@@ -1,13 +1,22 @@
 import { useState } from "react";
 import { getConfig } from "../lib/config";
-import { callContract, readContract, BOUNTY_STATUS_LABELS, type Bounty, type TxStatus } from "../lib/contract";
+import { readContract, BOUNTY_STATUS_LABELS, type Bounty, type TxStatus } from "../lib/contract";
 import { xlmToStroops } from "../lib/amount";
+import { toFriendlyError } from "../lib/errors";
+import { useContractAction } from "../hooks/useContractAction";
 
 interface Props {
   address: string | null;
   onTxUpdate: (status: TxStatus, hash?: string, error?: string) => void;
   onSuccess: () => void;
 }
+
+const PENDING_LABELS = {
+  initialize: "Initializing…",
+  create_bounty: "Creating…",
+  accept_bounty: "Accepting…",
+  release_funds: "Releasing…",
+} as const;
 
 export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
   // Read at render time (not module load) so a bad .env surfaces through
@@ -23,50 +32,36 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
   const [lookupId, setLookupId] = useState("");
   const [lookedUp, setLookedUp] = useState<Bounty | null | undefined>(undefined);
   const [count, setCount] = useState<number | null>(null);
-  const [busy, setBusy] = useState(false);
 
-  async function runWrite<K extends "initialize" | "create_bounty" | "accept_bounty" | "release_funds">(
-    method: K,
-    args: Record<string, unknown>,
-  ) {
-    if (!address) return undefined;
-    setBusy(true);
-    const { hash, result, error } = await callContract(method, args as never, address, (status) =>
-      onTxUpdate(status),
-    );
-    setBusy(false);
-    if (error) {
-      onTxUpdate("failed", undefined, error);
-      return undefined;
-    }
-    onTxUpdate("success", hash);
-    onSuccess();
-    return result;
-  }
+  const { pendingAction, run } = useContractAction({ address, onTxUpdate, onSuccess });
+  // Only one wallet-signed transaction can be in flight at a time, so every
+  // write action stays disabled while any one of them is pending — but each
+  // button only swaps to its own "…ing" label when it's the one running.
+  const isBusy = pendingAction !== null;
 
   async function handleCreate() {
     try {
       const stroops = xlmToStroops(amount);
-      const bountyId = await runWrite("create_bounty", { buyer: address, token, amount: stroops });
+      const bountyId = await run("create_bounty", { buyer: address, token, amount: stroops });
       if (typeof bountyId === "number") {
         setCreatedBountyId(bountyId);
         refreshCount();
       }
     } catch (err) {
-      onTxUpdate("failed", undefined, err instanceof Error ? err.message : String(err));
+      onTxUpdate("failed", undefined, toFriendlyError(err).message);
     }
   }
 
   async function handleAccept() {
-    await runWrite("accept_bounty", { tutor: address, bounty_id: Number(acceptId) });
+    await run("accept_bounty", { tutor: address, bounty_id: Number(acceptId) });
   }
 
   async function handleRelease() {
-    await runWrite("release_funds", { buyer: address, bounty_id: Number(releaseId) });
+    await run("release_funds", { buyer: address, bounty_id: Number(releaseId) });
   }
 
   async function handleInitialize() {
-    await runWrite("initialize", { admin: address });
+    await run("initialize", { admin: address });
   }
 
   async function refreshCount() {
@@ -84,7 +79,7 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
       const bounty = await readContract("get_bounty", { bounty_id: Number(lookupId) });
       setLookedUp(bounty ?? null);
     } catch (err) {
-      onTxUpdate("failed", undefined, err instanceof Error ? err.message : String(err));
+      onTxUpdate("failed", undefined, toFriendlyError(err).message);
     }
   }
 
@@ -130,8 +125,10 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
       {address && (
         <>
           <div className="row">
-            <button onClick={handleInitialize} disabled={busy}>
-              Initialize (admin = connected wallet)
+            <button onClick={handleInitialize} disabled={isBusy}>
+              {pendingAction === "initialize"
+                ? PENDING_LABELS.initialize
+                : "Initialize (admin = connected wallet)"}
             </button>
           </div>
 
@@ -145,8 +142,8 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
               min="0"
               step="0.0000001"
             />
-            <button onClick={handleCreate} disabled={busy}>
-              Create bounty
+            <button onClick={handleCreate} disabled={isBusy}>
+              {pendingAction === "create_bounty" ? PENDING_LABELS.create_bounty : "Create bounty"}
             </button>
           </div>
           {createdBountyId !== null && <p className="muted">Created bounty #{createdBountyId}</p>}
@@ -157,8 +154,10 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
               onChange={(e) => setAcceptId(e.target.value)}
               placeholder="Bounty ID"
             />
-            <button onClick={handleAccept} disabled={busy || !acceptId}>
-              Accept bounty (tutor = connected wallet)
+            <button onClick={handleAccept} disabled={isBusy || !acceptId}>
+              {pendingAction === "accept_bounty"
+                ? PENDING_LABELS.accept_bounty
+                : "Accept bounty (tutor = connected wallet)"}
             </button>
           </div>
 
@@ -168,8 +167,10 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
               onChange={(e) => setReleaseId(e.target.value)}
               placeholder="Bounty ID"
             />
-            <button onClick={handleRelease} disabled={busy || !releaseId}>
-              Release funds (buyer = connected wallet)
+            <button onClick={handleRelease} disabled={isBusy || !releaseId}>
+              {pendingAction === "release_funds"
+                ? PENDING_LABELS.release_funds
+                : "Release funds (buyer = connected wallet)"}
             </button>
           </div>
         </>

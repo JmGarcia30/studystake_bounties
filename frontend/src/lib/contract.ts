@@ -24,6 +24,9 @@ export interface Bounty {
   status: number;
 }
 
+/** Contract methods callable from the write panel — kept as a named union so the UI can key pending/label state off it. */
+export type WriteMethod = "initialize" | "create_bounty" | "accept_bounty" | "release_funds";
+
 interface StudyStakeContract {
   initialize: (args: { admin: string }) => Promise<contract.AssembledTransaction<null>>;
   create_bounty: (args: {
