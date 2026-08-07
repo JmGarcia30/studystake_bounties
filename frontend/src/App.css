@@ -3,6 +3,7 @@
   padding: 24px;
   max-width: 720px;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 header p {
@@ -14,6 +15,21 @@ header p {
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+/* Short status panels sit side by side when there's room, and collapse to a
+   single column automatically (via auto-fit) on narrow screens — no extra
+   breakpoint needed for this part of the layout. */
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.panel-grid .panel {
+  margin-bottom: 0;
 }
 
 .panel h3 {
@@ -124,6 +140,11 @@ button:disabled {
   color: #d33;
 }
 
+.stream-status,
+.local-badge {
+  white-space: nowrap;
+}
+
 .activity-list {
   list-style: none;
   padding: 0;
@@ -137,6 +158,7 @@ button:disabled {
   font-size: 14px;
   padding: 6px 0;
   border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
 }
 
 .activity-local {
@@ -161,4 +183,37 @@ button:disabled {
   border-radius: 4px;
   overflow-x: auto;
   font-size: 13px;
+}
+
+.hash {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+@media (max-width: 480px) {
+  .app {
+    padding: 16px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  /* Inputs and their buttons stack full-width instead of squeezing onto
+     one cramped line — flex-wrap alone isn't enough once labels get long
+     (e.g. "Accept bounty (tutor = connected wallet)"). */
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .row input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  button {
+    width: 100%;
+    padding: 10px 14px;
+  }
 }

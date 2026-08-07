@@ -50,13 +50,15 @@ function App() {
       </header>
 
       <main>
-        <WalletPanel
-          address={address}
-          onConnected={setAddress}
-          onDisconnected={() => setAddress(null)}
-        />
-        <BalancePanel address={address} refreshKey={refreshKey} />
-        <ReputationPanel address={address} refreshKey={refreshKey} />
+        <div className="panel-grid">
+          <WalletPanel
+            address={address}
+            onConnected={setAddress}
+            onDisconnected={() => setAddress(null)}
+          />
+          <BalancePanel address={address} refreshKey={refreshKey} />
+          <ReputationPanel address={address} refreshKey={refreshKey} />
+        </div>
         <ContractPanel
           address={address}
           onTxUpdate={handleTxUpdate}
