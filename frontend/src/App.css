@@ -104,6 +104,26 @@ button:disabled {
   color: #d33;
 }
 
+.stream-status {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.stream-status-loading,
+.stream-status-reconnecting {
+  color: #d9a441;
+}
+
+.stream-status-live {
+  color: #2a9d5c;
+}
+
+.stream-status-error {
+  color: #d33;
+}
+
 .activity-list {
   list-style: none;
   padding: 0;

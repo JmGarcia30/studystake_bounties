@@ -1,56 +1,10 @@
-import { contract, rpc, scValToNative } from "@stellar/stellar-sdk";
+import { contract } from "@stellar/stellar-sdk";
 import { getConfig } from "./config";
 import { signTransaction, toFriendlyError } from "./wallet";
 
-let server: rpc.Server | null = null;
-
-/** Lazily constructed so a bad RPC URL fails inside a call, not at module load. */
-function getServer(): rpc.Server {
-  if (!server) {
-    server = new rpc.Server(getConfig().rpcUrl);
-  }
-  return server;
-}
-
-export interface ActivityItem {
-  id: string;
-  ledger: number;
-  closedAt: string;
-  action: string;
-  bountyId: number;
-  actor: string;
-  amount: bigint;
-}
-
-/** Polls the last ~1 hour of ledgers for this contract's activity events. */
-export async function getRecentEvents(): Promise<ActivityItem[]> {
-  const svr = getServer();
-  const { sequence } = await svr.getLatestLedger();
-  const startLedger = Math.max(sequence - 720, 1); // ~1hr at ~5s/ledger
-
-  const { events } = await svr.getEvents({
-    startLedger,
-    filters: [{ type: "contract", contractIds: [getConfig().contractId] }],
-  });
-
-  return events.map((e) => {
-    const [, action] = e.topic.map(scValToNative) as [string, string];
-    const [bountyId, actor, amount] = scValToNative(e.value) as [
-      number,
-      string,
-      bigint,
-    ];
-    return {
-      id: e.id,
-      ledger: e.ledger,
-      closedAt: e.ledgerClosedAt,
-      action,
-      bountyId,
-      actor,
-      amount,
-    };
-  });
-}
+// Event fetching lives in ./events — it only needs RPC/config, never the
+// wallet, so it stays importable from tests and contexts without a wallet.
+export { fetchContractEvents, type ActivityItem, type EventPage } from "./events";
 
 // Mirrors contracts/studystake_bounties/src/lib.rs — kept in sync by hand since
 // this contract has no generated TS bindings yet (see README).
