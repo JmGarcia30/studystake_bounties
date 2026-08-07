@@ -4,11 +4,14 @@ import { readContract, BOUNTY_STATUS_LABELS, type Bounty, type TxStatus } from "
 import { xlmToStroops } from "../lib/amount";
 import { toFriendlyError } from "../lib/errors";
 import { useContractAction } from "../hooks/useContractAction";
+import type { OptimisticActivityInput } from "../lib/optimisticActivity";
 
 interface Props {
   address: string | null;
   onTxUpdate: (status: TxStatus, hash?: string, error?: string) => void;
   onSuccess: () => void;
+  /** Called only after a write action actually succeeds, so the feed can show it immediately. */
+  onActivity?: (activity: OptimisticActivityInput) => void;
 }
 
 const PENDING_LABELS = {
@@ -18,7 +21,7 @@ const PENDING_LABELS = {
   release_funds: "Releasing…",
 } as const;
 
-export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
+export function ContractPanel({ address, onTxUpdate, onSuccess, onActivity }: Props) {
   // Read at render time (not module load) so a bad .env surfaces through
   // the ErrorBoundary with a clear message instead of a blank page.
   const { contractId, tokenId } = getConfig();
@@ -46,6 +49,7 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
       if (typeof bountyId === "number") {
         setCreatedBountyId(bountyId);
         refreshCount();
+        onActivity?.({ action: "created", bountyId, actor: address!, amount: stroops });
       }
     } catch (err) {
       onTxUpdate("failed", undefined, toFriendlyError(err).message);
@@ -53,15 +57,26 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
   }
 
   async function handleAccept() {
-    await run("accept_bounty", { tutor: address, bounty_id: Number(acceptId) });
+    const bountyId = Number(acceptId);
+    const result = await run("accept_bounty", { tutor: address, bounty_id: bountyId });
+    if (result !== undefined) {
+      onActivity?.({ action: "accepted", bountyId, actor: address! });
+    }
   }
 
   async function handleRelease() {
-    await run("release_funds", { buyer: address, bounty_id: Number(releaseId) });
+    const bountyId = Number(releaseId);
+    const result = await run("release_funds", { buyer: address, bounty_id: bountyId });
+    if (result !== undefined) {
+      onActivity?.({ action: "released", bountyId, actor: address! });
+    }
   }
 
   async function handleInitialize() {
-    await run("initialize", { admin: address });
+    const result = await run("initialize", { admin: address });
+    if (result !== undefined) {
+      onActivity?.({ action: "initialized", bountyId: null, actor: address! });
+    }
   }
 
   async function refreshCount() {

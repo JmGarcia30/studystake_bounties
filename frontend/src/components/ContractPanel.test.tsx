@@ -36,8 +36,16 @@ const ADDRESS = "GBUFJT7DPW2JELFSBRZJR53DCYRGG7BX4LA2ECJB7PUDXGP33EKJVJBF";
 function renderPanel(address: string | null) {
   const onTxUpdate = vi.fn();
   const onSuccess = vi.fn();
-  render(<ContractPanel address={address} onTxUpdate={onTxUpdate} onSuccess={onSuccess} />);
-  return { onTxUpdate, onSuccess };
+  const onActivity = vi.fn();
+  render(
+    <ContractPanel
+      address={address}
+      onTxUpdate={onTxUpdate}
+      onSuccess={onSuccess}
+      onActivity={onActivity}
+    />,
+  );
+  return { onTxUpdate, onSuccess, onActivity };
 }
 
 describe("ContractPanel", () => {
@@ -132,5 +140,43 @@ describe("ContractPanel", () => {
         "You cancelled the request in your wallet.",
       ),
     );
+  });
+
+  it("reports an optimistic activity entry after a successful create_bounty", async () => {
+    mockCallContract.mockResolvedValue({ hash: "abc123", result: 7 });
+    const { onActivity } = renderPanel(ADDRESS);
+
+    fireEvent.click(screen.getByRole("button", { name: /create bounty/i }));
+
+    await waitFor(() =>
+      expect(onActivity).toHaveBeenCalledWith({
+        action: "created",
+        bountyId: 7,
+        actor: ADDRESS,
+        amount: 10_000_000n,
+      }),
+    );
+  });
+
+  it("reports an optimistic activity entry after a successful accept_bounty", async () => {
+    mockCallContract.mockResolvedValue({ hash: "abc123", result: null });
+    const { onActivity } = renderPanel(ADDRESS);
+
+    fireEvent.change(screen.getAllByPlaceholderText("Bounty ID")[1], { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: /accept bounty/i }));
+
+    await waitFor(() =>
+      expect(onActivity).toHaveBeenCalledWith({ action: "accepted", bountyId: 3, actor: ADDRESS }),
+    );
+  });
+
+  it("does not report an optimistic activity entry when a write action fails", async () => {
+    mockCallContract.mockResolvedValue({ error: "Enter a positive amount." });
+    const { onActivity } = renderPanel(ADDRESS);
+
+    fireEvent.click(screen.getByRole("button", { name: /create bounty/i }));
+
+    await waitFor(() => expect(mockCallContract).toHaveBeenCalled());
+    expect(onActivity).not.toHaveBeenCalled();
   });
 });
