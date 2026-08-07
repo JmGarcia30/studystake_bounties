@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CONTRACT_ID, TOKEN_ID } from "../lib/config";
+import { getConfig } from "../lib/config";
 import { callContract, readContract, BOUNTY_STATUS_LABELS, type Bounty, type TxStatus } from "../lib/contract";
 import { xlmToStroops } from "../lib/amount";
 
@@ -10,7 +10,10 @@ interface Props {
 }
 
 export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
-  const [token, setToken] = useState(TOKEN_ID);
+  // Read at render time (not module load) so a bad .env surfaces through
+  // the ErrorBoundary with a clear message instead of a blank page.
+  const { contractId, tokenId } = getConfig();
+  const [token, setToken] = useState(tokenId);
   const [amount, setAmount] = useState("1");
   const [createdBountyId, setCreatedBountyId] = useState<number | null>(null);
 
@@ -89,7 +92,7 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
     <section className="panel">
       <h2>Contract</h2>
       <p className="muted">
-        Address: <code>{CONTRACT_ID}</code>
+        Address: <code>{contractId}</code>
       </p>
 
       <h3>Read</h3>

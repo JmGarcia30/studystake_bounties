@@ -35,4 +35,37 @@ describe("toFriendlyError", () => {
   it("stringifies non-Error values", () => {
     expect(toFriendlyError("boom").message).toBe("boom");
   });
+
+  describe("contract error code mapping", () => {
+    const fixtures: Array<[code: number, expected: string]> = [
+      [1, "This contract has already been initialized."],
+      [2, "This contract has not been initialized yet."],
+      [3, "Enter a positive amount."],
+      [4, "No bounty exists with that ID."],
+      [5, "This bounty is not open."],
+      [6, "This bounty has not been accepted yet."],
+      [7, "Only the buyer of this bounty can do that."],
+      [8, "Only the contract admin can do that."],
+      [9, "This bounty doesn't have a tutor assigned yet."],
+      [10, "This bounty has already been completed."],
+      [11, "You're not authorized to do that."],
+    ];
+
+    it.each(fixtures)("maps contract error #%i to a friendly message", (code, expected) => {
+      const raw = `HostError: Error(Contract, #${code})\n\nEvent log (newest first):\n   0: ...`;
+      expect(toFriendlyError(new Error(raw)).message).toBe(expected);
+    });
+
+    it("matches the compact simulation-error form without extra context", () => {
+      expect(toFriendlyError(new Error("Error(Contract, #4)")).message).toBe(
+        "No bounty exists with that ID.",
+      );
+    });
+
+    it("falls back to a generic message for an unknown contract error code", () => {
+      expect(toFriendlyError(new Error("Error(Contract, #99)")).message).toBe(
+        "Contract rejected the transaction (error #99).",
+      );
+    });
+  });
 });

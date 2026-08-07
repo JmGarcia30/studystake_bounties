@@ -1,6 +1,6 @@
 import { StellarWalletsKit, Networks } from "@creit.tech/stellar-wallets-kit";
 import { defaultModules } from "@creit.tech/stellar-wallets-kit/modules/utils";
-import { NETWORK_PASSPHRASE } from "./config";
+import { getConfig } from "./config";
 import { toFriendlyError } from "./errors";
 
 export { toFriendlyError };
@@ -41,7 +41,7 @@ export async function signTransaction(
   try {
     return await StellarWalletsKit.signTransaction(xdr, {
       address: opts?.address,
-      networkPassphrase: opts?.networkPassphrase ?? NETWORK_PASSPHRASE,
+      networkPassphrase: opts?.networkPassphrase ?? getConfig().networkPassphrase,
     });
   } catch (err) {
     throw toFriendlyError(err);
