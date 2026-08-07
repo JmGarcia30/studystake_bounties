@@ -5,6 +5,7 @@ import { BalancePanel } from "./components/BalancePanel";
 import { ContractPanel } from "./components/ContractPanel";
 import { StatusPanel } from "./components/StatusPanel";
 import { ActivityFeed } from "./components/ActivityFeed";
+import { ReputationPanel } from "./components/ReputationPanel";
 import type { TxStatus } from "./lib/contract";
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
           onDisconnected={() => setAddress(null)}
         />
         <BalancePanel address={address} refreshKey={refreshKey} />
+        <ReputationPanel address={address} refreshKey={refreshKey} />
         <ContractPanel address={address} onTxUpdate={handleTxUpdate} onSuccess={handleSuccess} />
         <StatusPanel status={txStatus} hash={txHash} error={txError} />
         <ActivityFeed refreshKey={refreshKey} />
