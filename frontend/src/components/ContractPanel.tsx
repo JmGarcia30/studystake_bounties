@@ -1,25 +1,31 @@
 import { useState } from "react";
-import { CONTRACT_ID, TOKEN_ID } from "../lib/config";
-import { callContract, readContract, BOUNTY_STATUS_LABELS, type Bounty, type TxStatus } from "../lib/contract";
-
-const STROOPS_PER_XLM = 10_000_000n;
-
-function xlmToStroops(xlm: string): bigint {
-  const value = Number(xlm);
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new Error("Enter a positive amount.");
-  }
-  return BigInt(Math.round(value * Number(STROOPS_PER_XLM)));
-}
+import { getConfig } from "../lib/config";
+import { readContract, BOUNTY_STATUS_LABELS, type Bounty, type TxStatus } from "../lib/contract";
+import { xlmToStroops } from "../lib/amount";
+import { toFriendlyError } from "../lib/errors";
+import { useContractAction } from "../hooks/useContractAction";
+import type { OptimisticActivityInput } from "../lib/optimisticActivity";
 
 interface Props {
   address: string | null;
   onTxUpdate: (status: TxStatus, hash?: string, error?: string) => void;
   onSuccess: () => void;
+  /** Called only after a write action actually succeeds, so the feed can show it immediately. */
+  onActivity?: (activity: OptimisticActivityInput) => void;
 }
 
-export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
-  const [token, setToken] = useState(TOKEN_ID);
+const PENDING_LABELS = {
+  initialize: "Initializing…",
+  create_bounty: "Creating…",
+  accept_bounty: "Accepting…",
+  release_funds: "Releasing…",
+} as const;
+
+export function ContractPanel({ address, onTxUpdate, onSuccess, onActivity }: Props) {
+  // Read at render time (not module load) so a bad .env surfaces through
+  // the ErrorBoundary with a clear message instead of a blank page.
+  const { contractId, tokenId } = getConfig();
+  const [token, setToken] = useState(tokenId);
   const [amount, setAmount] = useState("1");
   const [createdBountyId, setCreatedBountyId] = useState<number | null>(null);
 
@@ -29,50 +35,48 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
   const [lookupId, setLookupId] = useState("");
   const [lookedUp, setLookedUp] = useState<Bounty | null | undefined>(undefined);
   const [count, setCount] = useState<number | null>(null);
-  const [busy, setBusy] = useState(false);
 
-  async function runWrite<K extends "initialize" | "create_bounty" | "accept_bounty" | "release_funds">(
-    method: K,
-    args: Record<string, unknown>,
-  ) {
-    if (!address) return undefined;
-    setBusy(true);
-    const { hash, result, error } = await callContract(method, args as never, address, (status) =>
-      onTxUpdate(status),
-    );
-    setBusy(false);
-    if (error) {
-      onTxUpdate("failed", undefined, error);
-      return undefined;
-    }
-    onTxUpdate("success", hash);
-    onSuccess();
-    return result;
-  }
+  const { pendingAction, run } = useContractAction({ address, onTxUpdate, onSuccess });
+  // Only one wallet-signed transaction can be in flight at a time, so every
+  // write action stays disabled while any one of them is pending — but each
+  // button only swaps to its own "…ing" label when it's the one running.
+  const isBusy = pendingAction !== null;
 
   async function handleCreate() {
     try {
       const stroops = xlmToStroops(amount);
-      const bountyId = await runWrite("create_bounty", { buyer: address, token, amount: stroops });
+      const bountyId = await run("create_bounty", { buyer: address, token, amount: stroops });
       if (typeof bountyId === "number") {
         setCreatedBountyId(bountyId);
         refreshCount();
+        onActivity?.({ action: "created", bountyId, actor: address!, amount: stroops });
       }
     } catch (err) {
-      onTxUpdate("failed", undefined, err instanceof Error ? err.message : String(err));
+      onTxUpdate("failed", undefined, toFriendlyError(err).message);
     }
   }
 
   async function handleAccept() {
-    await runWrite("accept_bounty", { tutor: address, bounty_id: Number(acceptId) });
+    const bountyId = Number(acceptId);
+    const result = await run("accept_bounty", { tutor: address, bounty_id: bountyId });
+    if (result !== undefined) {
+      onActivity?.({ action: "accepted", bountyId, actor: address! });
+    }
   }
 
   async function handleRelease() {
-    await runWrite("release_funds", { buyer: address, bounty_id: Number(releaseId) });
+    const bountyId = Number(releaseId);
+    const result = await run("release_funds", { buyer: address, bounty_id: bountyId });
+    if (result !== undefined) {
+      onActivity?.({ action: "released", bountyId, actor: address! });
+    }
   }
 
   async function handleInitialize() {
-    await runWrite("initialize", { admin: address });
+    const result = await run("initialize", { admin: address });
+    if (result !== undefined) {
+      onActivity?.({ action: "initialized", bountyId: null, actor: address! });
+    }
   }
 
   async function refreshCount() {
@@ -90,7 +94,7 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
       const bounty = await readContract("get_bounty", { bounty_id: Number(lookupId) });
       setLookedUp(bounty ?? null);
     } catch (err) {
-      onTxUpdate("failed", undefined, err instanceof Error ? err.message : String(err));
+      onTxUpdate("failed", undefined, toFriendlyError(err).message);
     }
   }
 
@@ -98,7 +102,7 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
     <section className="panel">
       <h2>Contract</h2>
       <p className="muted">
-        Address: <code>{CONTRACT_ID}</code>
+        Address: <code>{contractId}</code>
       </p>
 
       <h3>Read</h3>
@@ -136,8 +140,10 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
       {address && (
         <>
           <div className="row">
-            <button onClick={handleInitialize} disabled={busy}>
-              Initialize (admin = connected wallet)
+            <button onClick={handleInitialize} disabled={isBusy}>
+              {pendingAction === "initialize"
+                ? PENDING_LABELS.initialize
+                : "Initialize (admin = connected wallet)"}
             </button>
           </div>
 
@@ -151,8 +157,8 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
               min="0"
               step="0.0000001"
             />
-            <button onClick={handleCreate} disabled={busy}>
-              Create bounty
+            <button onClick={handleCreate} disabled={isBusy}>
+              {pendingAction === "create_bounty" ? PENDING_LABELS.create_bounty : "Create bounty"}
             </button>
           </div>
           {createdBountyId !== null && <p className="muted">Created bounty #{createdBountyId}</p>}
@@ -163,8 +169,10 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
               onChange={(e) => setAcceptId(e.target.value)}
               placeholder="Bounty ID"
             />
-            <button onClick={handleAccept} disabled={busy || !acceptId}>
-              Accept bounty (tutor = connected wallet)
+            <button onClick={handleAccept} disabled={isBusy || !acceptId}>
+              {pendingAction === "accept_bounty"
+                ? PENDING_LABELS.accept_bounty
+                : "Accept bounty (tutor = connected wallet)"}
             </button>
           </div>
 
@@ -174,8 +182,10 @@ export function ContractPanel({ address, onTxUpdate, onSuccess }: Props) {
               onChange={(e) => setReleaseId(e.target.value)}
               placeholder="Bounty ID"
             />
-            <button onClick={handleRelease} disabled={busy || !releaseId}>
-              Release funds (buyer = connected wallet)
+            <button onClick={handleRelease} disabled={isBusy || !releaseId}>
+              {pendingAction === "release_funds"
+                ? PENDING_LABELS.release_funds
+                : "Release funds (buyer = connected wallet)"}
             </button>
           </div>
         </>

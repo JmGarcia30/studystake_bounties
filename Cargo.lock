@@ -1513,6 +1513,14 @@ name = "studystake_bounties"
 version = "0.0.0"
 dependencies = [
  "soroban-sdk",
+ "studystake_reputation",
+]
+
+[[package]]
+name = "studystake_reputation"
+version = "0.0.0"
+dependencies = [
+ "soroban-sdk",
 ]
 
 [[package]]

@@ -23,7 +23,7 @@ export function StatusPanel({ status, hash, error }: Props) {
       {hash && (
         <p>
           Tx hash:{" "}
-          <a href={EXPLORER_TX_URL(hash)} target="_blank" rel="noreferrer">
+          <a className="hash" href={EXPLORER_TX_URL(hash)} target="_blank" rel="noreferrer">
             {hash}
           </a>
         </p>

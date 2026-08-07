@@ -1,5 +1,7 @@
 # StudyStake Bounties
 
+[![CI](https://github.com/JmGarcia30/studystake_bounties/actions/workflows/ci.yml/badge.svg)](https://github.com/JmGarcia30/studystake_bounties/actions/workflows/ci.yml)
+
 ![PICTURE](Stellar_GarciaJM.png)
 
 A decentralized micro-task board built on Stellar Soroban for student peer-tutoring, with a
@@ -56,10 +58,9 @@ Exported functions in `contracts/studystake_bounties/src/lib.rs`:
 `("bounty", <action>)` event with `(bounty_id, actor, amount)` data, which the frontend polls
 via `getEvents` for the live activity feed.
 
-> `src/test.rs` predates the current `soroban-sdk` version and is not wired into the crate
-> (no `mod test;` in `lib.rs`) — its testutils APIs (`register_contract`,
-> `register_stellar_asset_contract`) were removed in SDK 25. Left as-is rather than rewritten,
-> since the task was to add to the contract, not rebuild its test suite.
+> `src/test.rs` is wired into the crate via `mod test;` in `lib.rs` and runs with `cargo test`
+> (5 tests covering the happy path, dispute resolution both ways, and unauthorized/duplicate
+> action rejections).
 
 ### How to Build
 

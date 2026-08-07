@@ -1,47 +1,10 @@
-import { contract, rpc, scValToNative } from "@stellar/stellar-sdk";
-import { CONTRACT_ID, RPC_URL, NETWORK_PASSPHRASE } from "./config";
+import { contract } from "@stellar/stellar-sdk";
+import { getConfig } from "./config";
 import { signTransaction, toFriendlyError } from "./wallet";
 
-const server = new rpc.Server(RPC_URL);
-
-export interface ActivityItem {
-  id: string;
-  ledger: number;
-  closedAt: string;
-  action: string;
-  bountyId: number;
-  actor: string;
-  amount: bigint;
-}
-
-/** Polls the last ~1 hour of ledgers for this contract's activity events. */
-export async function getRecentEvents(): Promise<ActivityItem[]> {
-  const { sequence } = await server.getLatestLedger();
-  const startLedger = Math.max(sequence - 720, 1); // ~1hr at ~5s/ledger
-
-  const { events } = await server.getEvents({
-    startLedger,
-    filters: [{ type: "contract", contractIds: [CONTRACT_ID] }],
-  });
-
-  return events.map((e) => {
-    const [, action] = e.topic.map(scValToNative) as [string, string];
-    const [bountyId, actor, amount] = scValToNative(e.value) as [
-      number,
-      string,
-      bigint,
-    ];
-    return {
-      id: e.id,
-      ledger: e.ledger,
-      closedAt: e.ledgerClosedAt,
-      action,
-      bountyId,
-      actor,
-      amount,
-    };
-  });
-}
+// Event fetching lives in ./events — it only needs RPC/config, never the
+// wallet, so it stays importable from tests and contexts without a wallet.
+export { fetchContractEvents, type ActivityItem, type EventPage } from "./events";
 
 // Mirrors contracts/studystake_bounties/src/lib.rs — kept in sync by hand since
 // this contract has no generated TS bindings yet (see README).
@@ -60,6 +23,9 @@ export interface Bounty {
   amount: bigint;
   status: number;
 }
+
+/** Contract methods callable from the write panel — kept as a named union so the UI can key pending/label state off it. */
+export type WriteMethod = "initialize" | "create_bounty" | "accept_bounty" | "release_funds";
 
 interface StudyStakeContract {
   initialize: (args: { admin: string }) => Promise<contract.AssembledTransaction<null>>;
@@ -92,10 +58,11 @@ let clientPromise: Promise<contract.Client & StudyStakeContract> | null = null;
 /** Cached contract client, signed by whichever wallet address is currently connected. */
 function getClient() {
   if (!clientPromise) {
+    const cfg = getConfig();
     clientPromise = contract.Client.from<StudyStakeContract>({
-      contractId: CONTRACT_ID,
-      networkPassphrase: NETWORK_PASSPHRASE,
-      rpcUrl: RPC_URL,
+      contractId: cfg.contractId,
+      networkPassphrase: cfg.networkPassphrase,
+      rpcUrl: cfg.rpcUrl,
       signTransaction,
     });
   }
