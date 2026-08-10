@@ -3,11 +3,23 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "./App";
-import { connectWallet } from "./lib/wallet";
-import { callContract } from "./lib/contract";
+import { stellarAdapter } from "./lib/stellar";
 import { getXlmBalance } from "./lib/horizon";
-import { isReputationConfigured } from "./lib/reputation";
 import { useEventStream } from "./hooks/useEventStream";
+import { fetchUserProfile, saveUserProfile } from "./services/userService";
+
+vi.mock("@creit.tech/stellar-wallets-kit", () => ({
+  StellarWalletsKit: {
+    init: vi.fn(),
+    authModal: vi.fn(),
+    disconnect: vi.fn(),
+  },
+  Networks: { TESTNET: "TESTNET" },
+}));
+
+vi.mock("@creit.tech/stellar-wallets-kit/modules/utils", () => ({
+  defaultModules: vi.fn().mockReturnValue([]),
+}));
 
 vi.mock("./lib/config", () => ({
   getConfig: () => ({
@@ -20,11 +32,19 @@ vi.mock("./lib/config", () => ({
   EXPLORER_TX_URL: (hash: string) => `https://stellar.expert/explorer/testnet/tx/${hash}`,
 }));
 
-// The wallet-kit (freighter-api, etc.) doesn't load in jsdom — stub the
-// module entirely, same as ContractPanel.test.tsx does.
-vi.mock("./lib/wallet", () => ({
-  connectWallet: vi.fn(),
-  disconnectWallet: vi.fn().mockResolvedValue(undefined),
+vi.mock("./lib/stellar", () => ({
+  stellarAdapter: {
+    connect: vi.fn(),
+    signMessage: vi.fn().mockResolvedValue("sig_123"),
+    disconnect: vi.fn().mockResolvedValue(undefined),
+  },
+  createAuthChallenge: vi.fn().mockReturnValue("challenge"),
+  verifyWalletSignature: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock("./services/userService", () => ({
+  fetchUserProfile: vi.fn(),
+  saveUserProfile: vi.fn().mockImplementation(async (p) => p),
 }));
 
 vi.mock("./lib/contract", () => ({
@@ -46,69 +66,73 @@ vi.mock("./hooks/useEventStream", () => ({
   useEventStream: vi.fn().mockReturnValue({ items: [], state: "live", error: null }),
 }));
 
-const mockConnectWallet = vi.mocked(connectWallet);
-const mockCallContract = vi.mocked(callContract);
+const mockConnect = vi.mocked(stellarAdapter.connect);
+const mockFetchProfile = vi.mocked(fetchUserProfile);
+const mockSaveProfile = vi.mocked(saveUserProfile);
 const mockGetXlmBalance = vi.mocked(getXlmBalance);
-const mockIsReputationConfigured = vi.mocked(isReputationConfigured);
 const mockUseEventStream = vi.mocked(useEventStream);
 
 const ADDRESS = "GBUFJT7DPW2JELFSBRZJR53DCYRGG7BX4LA2ECJB7PUDXGP33EKJVJBF";
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   vi.restoreAllMocks();
   mockUseEventStream.mockReturnValue({ items: [], state: "live", error: null });
-  mockIsReputationConfigured.mockReturnValue(false);
 });
 
-describe("App", () => {
-  it("renders every main panel without crashing", () => {
+describe("App & Auth Flow", () => {
+  it("renders LandingPage by default for unauthenticated public visitors", () => {
+    mockFetchProfile.mockResolvedValue(null);
     render(<App />);
-    expect(screen.getByRole("heading", { name: "Wallet" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Balance" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Reputation" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Contract" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Transaction Status" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Live Activity" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Earn by Learning/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Connect Stellar Wallet/i }).length).toBeGreaterThan(0);
   });
 
-  it("shows the no-wallet state across every wallet-dependent panel", () => {
+  it("routes first-time connected wallet from LandingPage to ProfileSetup", async () => {
+    mockConnect.mockResolvedValue(ADDRESS);
+    mockFetchProfile.mockResolvedValue(null);
+
     render(<App />);
-    expect(screen.getByRole("button", { name: /connect wallet/i })).toBeInTheDocument();
-    expect(screen.getByText(/connect a wallet to see your balance/i)).toBeInTheDocument();
-    expect(screen.getByText(/connect a wallet to call the contract/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /create bounty/i })).not.toBeInTheDocument();
+    // Connect wallet directly from LandingPage
+    fireEvent.click(screen.getAllByRole("button", { name: /Connect Stellar Wallet/i })[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Complete Your Profile")).toBeInTheDocument();
+    });
   });
 
-  it("flows a wallet connection through to the dependent panels", async () => {
-    mockConnectWallet.mockResolvedValue(ADDRESS);
+  it("completes profile setup and enters Dashboard", async () => {
+    mockConnect.mockResolvedValue(ADDRESS);
+    mockFetchProfile.mockResolvedValue(null);
+    mockSaveProfile.mockResolvedValue({
+      walletAddress: ADDRESS,
+      name: "Alex Scholar",
+      username: "@alex_scholar",
+      bio: "Learning Soroban",
+      role: "student",
+      createdAt: new Date().toISOString(),
+    });
     mockGetXlmBalance.mockResolvedValue("100.0000000");
+
     render(<App />);
+    // Connect wallet directly from LandingPage
+    fireEvent.click(screen.getAllByRole("button", { name: /Connect Stellar Wallet/i })[0]);
 
-    fireEvent.click(screen.getByRole("button", { name: /connect wallet/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Complete Your Profile")).toBeInTheDocument();
+    });
 
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /disconnect/i })).toBeInTheDocument(),
-    );
-    expect(screen.getByText(ADDRESS)).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText(/100\.0000000 xlm/i)).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: /^create bounty$/i })).toBeInTheDocument();
-  });
+    fireEvent.change(screen.getByPlaceholderText("e.g. Alex Rivera"), {
+      target: { value: "Alex Scholar" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("e.g. alex_scholar"), {
+      target: { value: "alex_scholar" },
+    });
 
-  it("runs a create_bounty transaction through the full App wiring", async () => {
-    mockConnectWallet.mockResolvedValue(ADDRESS);
-    mockGetXlmBalance.mockResolvedValue("100.0000000");
-    mockCallContract.mockResolvedValue({ hash: "abc123", result: 7 });
-    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /Save & Enter Dashboard/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: /connect wallet/i }));
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /^create bounty$/i })).toBeInTheDocument(),
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /^create bounty$/i }));
-
-    await waitFor(() => expect(screen.getByText("Success")).toBeInTheDocument());
-    expect(screen.getByRole("link", { name: "abc123" })).toBeInTheDocument();
+    const elements = await screen.findAllByText("Alex Scholar");
+    expect(elements.length).toBeGreaterThan(0);
   });
 });

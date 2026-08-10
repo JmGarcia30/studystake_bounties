@@ -1,16 +1,19 @@
-import { GraduationCap, Wallet, UserCheck, Briefcase, Menu, Search, Bell } from "lucide-react";
-import { connectWallet, disconnectWallet } from "../lib/wallet";
+import { Wallet, UserCheck, Briefcase, Menu, Search, Bell, LogOut } from "lucide-react";
 import { useState } from "react";
 import type { NavTab } from "./Sidebar";
+import type { UserRole } from "../types/user";
+import { useAuth } from "../hooks/useAuth";
 
 interface Props {
   address: string | null;
-  activeRole: "student" | "employer";
+  activeRole: UserRole;
   activeTab: NavTab;
-  onRoleChange: (role: "student" | "employer") => void;
+  onRoleChange: (role: UserRole) => void;
   onTabChange: (tab: NavTab) => void;
   onConnected: (address: string) => void;
   onDisconnected: () => void;
+  onOpenNotifications?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export function Header({
@@ -19,21 +22,21 @@ export function Header({
   activeTab,
   onRoleChange,
   onTabChange,
-  onConnected,
+  onConnected: _onConnected,
   onDisconnected,
+  onOpenNotifications,
+  onOpenSettings,
 }: Props) {
-  const [connecting, setConnecting] = useState(false);
+  const { userProfile, disconnectWallet, connectAndVerifyWallet, loadingStep } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const isBusy = loadingStep !== "idle";
+
   async function handleConnect() {
-    setConnecting(true);
     try {
-      const addr = await connectWallet();
-      onConnected(addr);
+      await connectAndVerifyWallet();
     } catch {
-      // Handled in WalletPanel
-    } finally {
-      setConnecting(false);
+      // Handled in auth state
     }
   }
 
@@ -63,7 +66,7 @@ export function Header({
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <GraduationCap className="w-6 h-6 text-[#6C5CE7]" />
+            <img src="/logo-icon.png" alt="StudyStake Icon" className="h-8 w-auto object-contain" />
             <span className="font-bold text-slate-900 text-base">StudyStake</span>
           </div>
         </div>
@@ -80,61 +83,83 @@ export function Header({
 
         {/* Header Right Actions */}
         <div className="flex items-center gap-3">
-          {/* Mode Switcher Pill */}
+          {/* User Handle & Profile Badge */}
+          {userProfile && (
+            <button
+              onClick={onOpenSettings}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 cursor-pointer transition-all text-left"
+              title="Click to open settings"
+            >
+              <div className="w-6 h-6 rounded-full bg-[#6C5CE7] text-white flex items-center justify-center text-[10px] font-bold">
+                {userProfile.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-xs font-bold text-slate-800 leading-none">{userProfile.name}</span>
+                <span className="text-[10px] text-slate-500 font-mono leading-tight">{userProfile.username}</span>
+              </div>
+            </button>
+          )}
+
+          {/* View Mode Toggle Pill (Switches View Perspective) */}
           <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 border border-slate-200">
             <button
               type="button"
               onClick={() => onRoleChange("student")}
-              className={`text-xs py-1 px-3 rounded-lg font-semibold transition-all ${
+              title="View Student Dashboard"
+              className={`text-xs py-1 px-2.5 rounded-lg font-semibold transition-all flex items-center gap-1 ${
                 activeRole === "student"
                   ? "bg-slate-900 text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <UserCheck className="w-3.5 h-3.5 mr-1.5 inline" />
-              Student Mode
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Student</span>
             </button>
 
             <button
               type="button"
-              onClick={() => onRoleChange("employer")}
-              className={`text-xs py-1 px-3 rounded-lg font-semibold transition-all ${
-                activeRole === "employer"
+              onClick={() => onRoleChange("sponsor")}
+              title="View Sponsor Hub"
+              className={`text-xs py-1 px-2.5 rounded-lg font-semibold transition-all flex items-center gap-1 ${
+                activeRole === "sponsor"
                   ? "bg-[#6C5CE7] text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <Briefcase className="w-3.5 h-3.5 mr-1.5 inline" />
-              Sponsor Mode
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>Sponsor</span>
             </button>
           </div>
 
           {/* Notifications Icon Button */}
           <button
             type="button"
+            onClick={onOpenNotifications}
             className="!p-2 !bg-slate-50 hover:!bg-slate-100 !border-slate-200 text-slate-600 rounded-xl cursor-pointer hidden md:flex"
             title="Notifications"
           >
-            <Bell className="w-4 h-4" />
+            <Bell className="w-4 h-4 text-slate-600" />
           </button>
 
           {/* User Connect / Address Button */}
           {address ? (
             <button
               onClick={handleDisconnect}
-              className="text-xs bg-slate-100 hover:bg-rose-50 text-slate-800 hover:text-rose-600 border-slate-200 hover:border-rose-200 font-semibold py-2 px-3.5 rounded-xl"
+              className="text-xs bg-slate-100 hover:bg-rose-50 text-slate-800 hover:text-rose-600 border-slate-200 hover:border-rose-200 font-semibold py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all"
+              title="Click to disconnect wallet"
             >
-              <Wallet className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
-              {address.slice(0, 6)}…{address.slice(-4)}
+              <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{address.slice(0, 6)}…{address.slice(-4)}</span>
+              <LogOut className="w-3 h-3 ml-1 text-slate-400 hover:text-rose-600" />
             </button>
           ) : (
             <button
               onClick={handleConnect}
-              disabled={connecting}
-              className="text-xs bg-[#6C5CE7] hover:bg-[#5B4BD6] text-white border-purple-400/30 shadow-xs font-semibold py-2 px-3.5 rounded-xl"
+              disabled={isBusy}
+              className="text-xs bg-[#6C5CE7] hover:bg-[#5B4BD6] text-white border-purple-400/30 shadow-xs font-semibold py-2 px-3.5 rounded-xl flex items-center gap-1.5"
             >
-              <Wallet className="w-3.5 h-3.5 mr-1.5" />
-              {connecting ? "Connecting…" : "Connect"}
+              <Wallet className="w-3.5 h-3.5" />
+              {isBusy ? "Connecting…" : "Connect"}
             </button>
           )}
         </div>

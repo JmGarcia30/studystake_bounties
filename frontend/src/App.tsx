@@ -12,6 +12,11 @@ import { StatusPanel } from "./components/StatusPanel";
 import { ActivityFeed } from "./components/ActivityFeed";
 import { ReputationPanel } from "./components/ReputationPanel";
 import type { TxStatus } from "./lib/contract";
+import { AuthProvider } from "./context/AuthContext";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { NotificationsDrawer } from "./components/dashboard/NotificationsDrawer";
+import { UserSettingsModal } from "./components/dashboard/UserSettingsModal";
+import { useAuth } from "./hooks/useAuth";
 import {
   createOptimisticActivity,
   type OptimisticActivity,
@@ -20,19 +25,21 @@ import {
 
 const MAX_OPTIMISTIC_ITEMS = 20;
 
-function App() {
-  const [address, setAddress] = useState<string | null>(null);
-  const [activeRole, setActiveRole] = useState<"student" | "employer">("student");
+function DashboardLayout() {
+  const { walletAddress, role, updateRole, disconnectWallet, connectAndVerifyWallet } = useAuth();
+
   const [activeTab, setActiveTab] = useState<NavTab>("dashboard");
-  
   const [txStatus, setTxStatus] = useState<TxStatus>("idle");
   const [txHash, setTxHash] = useState<string | undefined>();
   const [txError, setTxError] = useState<string | undefined>();
   const [refreshKey, setRefreshKey] = useState(0);
   const [optimisticActivity, setOptimisticActivity] = useState<OptimisticActivity[]>([]);
-  
+
   const [selectedPresetAmount, setSelectedPresetAmount] = useState<string | undefined>();
   const [selectedPresetBountyId, setSelectedPresetBountyId] = useState<number | undefined>();
+
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   function handleTxUpdate(status: TxStatus, hash?: string, error?: string) {
     setTxStatus(status);
@@ -46,7 +53,7 @@ function App() {
 
   function handleActivity(activity: OptimisticActivityInput) {
     setOptimisticActivity((prev) =>
-      [...prev, createOptimisticActivity(activity)].slice(-MAX_OPTIMISTIC_ITEMS),
+      [...prev, createOptimisticActivity(activity)].slice(-MAX_OPTIMISTIC_ITEMS)
     );
   }
 
@@ -65,13 +72,15 @@ function App() {
       <div className="flex-1 h-full overflow-y-auto flex flex-col min-w-0 bg-[#F8FAFC]">
         {/* 2. Top Navbar */}
         <Header
-          address={address}
-          activeRole={activeRole}
+          address={walletAddress}
+          activeRole={role}
           activeTab={activeTab}
-          onRoleChange={setActiveRole}
+          onRoleChange={updateRole}
           onTabChange={setActiveTab}
-          onConnected={setAddress}
-          onDisconnected={() => setAddress(null)}
+          onConnected={() => connectAndVerifyWallet()}
+          onDisconnected={() => disconnectWallet()}
+          onOpenNotifications={() => setNotificationsOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
 
         <main className="p-6 sm:p-8 w-full max-w-none space-y-6">
@@ -83,20 +92,20 @@ function App() {
                 <HeroBanner onExploreClick={() => setActiveTab("marketplace")} />
                 <StatBar bountyCount={null} />
                 <BountyMarketplace
-                  activeRole={activeRole}
+                  activeRole={role}
                   onSelectBountyPreset={handleSelectBountyPreset}
                 />
               </div>
 
               {/* Right Account & Wallet Panel */}
               <RightPanel
-                address={address}
+                address={walletAddress}
                 refreshKey={refreshKey}
                 txStatus={txStatus}
                 txHash={txHash}
                 txError={txError}
-                onConnected={setAddress}
-                onDisconnected={() => setAddress(null)}
+                onConnected={() => connectAndVerifyWallet()}
+                onDisconnected={() => disconnectWallet()}
               />
             </div>
           )}
@@ -106,18 +115,18 @@ function App() {
             <div className="flex flex-col lg:flex-row gap-8 w-full">
               <div className="flex-1 min-w-0">
                 <BountyMarketplace
-                  activeRole={activeRole}
+                  activeRole={role}
                   onSelectBountyPreset={handleSelectBountyPreset}
                 />
               </div>
               <RightPanel
-                address={address}
+                address={walletAddress}
                 refreshKey={refreshKey}
                 txStatus={txStatus}
                 txHash={txHash}
                 txError={txError}
-                onConnected={setAddress}
-                onDisconnected={() => setAddress(null)}
+                onConnected={() => connectAndVerifyWallet()}
+                onDisconnected={() => disconnectWallet()}
               />
             </div>
           )}
@@ -127,7 +136,7 @@ function App() {
             <div className="flex flex-col lg:flex-row gap-8 w-full">
               <div className="flex-1 space-y-6 min-w-0">
                 <ContractPanel
-                  address={address}
+                  address={walletAddress}
                   onTxUpdate={handleTxUpdate}
                   onSuccess={handleSuccess}
                   onActivity={handleActivity}
@@ -137,13 +146,13 @@ function App() {
                 <StatusPanel status={txStatus} hash={txHash} error={txError} />
               </div>
               <RightPanel
-                address={address}
+                address={walletAddress}
                 refreshKey={refreshKey}
                 txStatus={txStatus}
                 txHash={txHash}
                 txError={txError}
-                onConnected={setAddress}
-                onDisconnected={() => setAddress(null)}
+                onConnected={() => connectAndVerifyWallet()}
+                onDisconnected={() => disconnectWallet()}
               />
             </div>
           )}
@@ -152,17 +161,17 @@ function App() {
           {activeTab === "reputation" && (
             <div className="flex flex-col lg:flex-row gap-8 w-full">
               <div className="flex-1 space-y-6 min-w-0">
-                <ReputationPanel address={address} refreshKey={refreshKey} />
-                <BalancePanel address={address} refreshKey={refreshKey} />
+                <ReputationPanel address={walletAddress} refreshKey={refreshKey} />
+                <BalancePanel address={walletAddress} refreshKey={refreshKey} />
               </div>
               <RightPanel
-                address={address}
+                address={walletAddress}
                 refreshKey={refreshKey}
                 txStatus={txStatus}
                 txHash={txHash}
                 txError={txError}
-                onConnected={setAddress}
-                onDisconnected={() => setAddress(null)}
+                onConnected={() => connectAndVerifyWallet()}
+                onDisconnected={() => disconnectWallet()}
               />
             </div>
           )}
@@ -175,13 +184,13 @@ function App() {
                 <StatusPanel status={txStatus} hash={txHash} error={txError} />
               </div>
               <RightPanel
-                address={address}
+                address={walletAddress}
                 refreshKey={refreshKey}
                 txStatus={txStatus}
                 txHash={txHash}
                 txError={txError}
-                onConnected={setAddress}
-                onDisconnected={() => setAddress(null)}
+                onConnected={() => connectAndVerifyWallet()}
+                onDisconnected={() => disconnectWallet()}
               />
             </div>
           )}
@@ -190,13 +199,13 @@ function App() {
           <div className="hidden">
             {activeTab === "dashboard" && (
               <>
-                <ContractPanel address={address} onTxUpdate={handleTxUpdate} onSuccess={handleSuccess} />
+                <ContractPanel address={walletAddress} onTxUpdate={handleTxUpdate} onSuccess={handleSuccess} />
                 <ActivityFeed refreshKey={refreshKey} optimisticItems={optimisticActivity} />
               </>
             )}
             {activeTab === "marketplace" && (
               <>
-                <ContractPanel address={address} onTxUpdate={handleTxUpdate} onSuccess={handleSuccess} />
+                <ContractPanel address={walletAddress} onTxUpdate={handleTxUpdate} onSuccess={handleSuccess} />
                 <ActivityFeed refreshKey={refreshKey} optimisticItems={optimisticActivity} />
               </>
             )}
@@ -205,12 +214,12 @@ function App() {
             )}
             {activeTab === "reputation" && (
               <>
-                <ContractPanel address={address} onTxUpdate={handleTxUpdate} onSuccess={handleSuccess} />
+                <ContractPanel address={walletAddress} onTxUpdate={handleTxUpdate} onSuccess={handleSuccess} />
                 <ActivityFeed refreshKey={refreshKey} optimisticItems={optimisticActivity} />
               </>
             )}
             {activeTab === "events" && (
-              <ContractPanel address={address} onTxUpdate={handleTxUpdate} onSuccess={handleSuccess} />
+              <ContractPanel address={walletAddress} onTxUpdate={handleTxUpdate} onSuccess={handleSuccess} />
             )}
           </div>
         </main>
@@ -221,7 +230,29 @@ function App() {
           </p>
         </footer>
       </div>
+
+      {/* Notifications Drawer */}
+      <NotificationsDrawer
+        isOpen={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+      />
+
+      {/* User Settings Modal */}
+      <UserSettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <ProtectedRoute>
+        <DashboardLayout />
+      </ProtectedRoute>
+    </AuthProvider>
   );
 }
 
