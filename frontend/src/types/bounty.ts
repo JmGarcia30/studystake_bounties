@@ -1,32 +1,50 @@
-export type BountyStatus = "Open" | "In Progress" | "In Review" | "Completed" | "Disputed";
+/** Public Stellar identifiers are strings at runtime; aliases document their role. */
+export type WalletAddress = string;
+export type TransactionHash = string;
+export type ContractEscrowId = number;
 
+export type BountyStatus = "Open" | "In Progress" | "In Review" | "Completed" | "Disputed";
+export type ReviewStatus = "Pending" | "Approved" | "Rejected";
 export type BountyCategory =
   | "Soroban Smart Contracts"
   | "Web3 Development"
   | "STEM & Peer Tutoring"
   | "Data & Algorithms";
 
-export interface BountySubmission {
+export interface BountyCreator { walletAddress: WalletAddress; displayName: string; }
+export interface Contributor { walletAddress: WalletAddress; displayName: string; }
+export interface EscrowReference {
+  contractEscrowId: ContractEscrowId | null;
+  fundingTransactionHash: TransactionHash | null;
+}
+export interface ProofSubmission {
   id: string;
   bountyId: number;
-  studentAddress: string;
-  studentName: string;
+  contributor: Contributor;
   proofUrl: string;
   notes: string;
   submittedAt: string;
-  status: "Pending" | "Approved" | "Rejected";
+  reviewStatus: ReviewStatus;
+  reviewTransactionHash: TransactionHash | null;
 }
-
 export interface Bounty {
   id: number;
   title: string;
   category: BountyCategory;
   rewardXlm: string;
-  sponsor: string;
-  sponsorAddress?: string;
+  creator: BountyCreator;
+  contributor: Contributor | null;
   description: string;
   difficulty: "Beginner" | "Intermediate" | "Advanced";
   status: BountyStatus;
+  escrow: EscrowReference;
   createdAt: string;
-  submissionsCount?: number;
+  submissionsCount: number;
+}
+export interface BountyListQuery { category?: BountyCategory | "All"; search?: string; }
+export interface CreateProofSubmissionInput {
+  bountyId: number;
+  contributor: Contributor;
+  proofUrl: string;
+  notes: string;
 }

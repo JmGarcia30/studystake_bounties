@@ -34,13 +34,15 @@ export function SubmitProofModal({ bounty, onClose, onSuccess }: Props) {
     setError(null);
 
     try {
-      await submitBountyProof(
-        bounty.id,
-        walletAddress,
-        userProfile?.name || "Student Scholar",
-        proofUrl.trim(),
-        notes.trim()
-      );
+      await submitBountyProof({
+        bountyId: bounty.id,
+        contributor: {
+          walletAddress,
+          displayName: userProfile?.name || "Student Scholar",
+        },
+        proofUrl: proofUrl.trim(),
+        notes: notes.trim(),
+      });
       setSubmittedSuccess(true);
       setTimeout(() => {
         onSuccess();
@@ -79,7 +81,7 @@ export function SubmitProofModal({ bounty, onClose, onSuccess }: Props) {
             </div>
             <h4 className="text-base font-bold text-slate-900">Proof Submitted Successfully!</h4>
             <p className="text-xs text-slate-500 max-w-xs mx-auto">
-              Your solution has been submitted to {bounty.sponsor} for review.
+              Your solution has been submitted to {bounty.creator.displayName} for review.
             </p>
           </div>
         ) : (

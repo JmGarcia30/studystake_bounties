@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Tag, Clock, Send, FileCheck, Sparkles, Coins, Lock, Code2 } from "lucide-react";
+import { Search, Tag, Clock, Send, FileCheck, Sparkles, Coins, Lock, Code2, AlertCircle } from "lucide-react";
 import type { UserRole } from "../types/user";
-import type { Bounty, BountySubmission } from "../types/bounty";
-import { fetchBounties, fetchStudentSubmissions } from "../services/bountyService";
+import type { Bounty, BountyCategory, ProofSubmission } from "../types/bounty";
+import { fetchBounties, fetchContributorSubmissions } from "../services/bountyService";
 import { SubmitProofModal } from "./dashboard/SubmitProofModal";
 import { SkeletonCard } from "./common/SkeletonCard";
 import { useAuth } from "../hooks/useAuth";
@@ -16,14 +16,15 @@ export function BountyMarketplace({ onSelectBountyPreset, activeRole }: Props) {
   const { walletAddress } = useAuth();
 
   const [bounties, setBounties] = useState<Bounty[]>([]);
-  const [submissions, setSubmissions] = useState<BountySubmission[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [submissions, setSubmissions] = useState<ProofSubmission[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<BountyCategory | "All">("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "recommended" | "submissions">("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeBountyForProof, setActiveBountyForProof] = useState<Bounty | null>(null);
 
-  const categories = [
+  const categories: Array<BountyCategory | "All"> = [
     "All",
     "Soroban Smart Contracts",
     "Web3 Development",
@@ -46,15 +47,18 @@ export function BountyMarketplace({ onSelectBountyPreset, activeRole }: Props) {
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const items = await fetchBounties(selectedCategory, searchQuery);
       setBounties(items);
       if (walletAddress) {
-        const subs = await fetchStudentSubmissions(walletAddress);
+        const subs = await fetchContributorSubmissions(walletAddress);
         setSubmissions(subs);
+      } else {
+        setSubmissions([]);
       }
     } catch (err) {
-      console.error("Failed to load bounties", err);
+      setLoadError(err instanceof Error ? err.message : "Bounty data could not be loaded.");
     } finally {
       setIsLoading(false);
     }
@@ -182,6 +186,12 @@ export function BountyMarketplace({ onSelectBountyPreset, activeRole }: Props) {
       {/* Loading Skeleton */}
       {isLoading ? (
         <SkeletonCard count={4} />
+      ) : loadError ? (
+        <div role="alert" className="py-10 text-center text-rose-700 space-y-3 rounded-2xl bg-rose-50 border border-rose-200">
+          <AlertCircle className="w-7 h-7 mx-auto" />
+          <p className="text-xs font-semibold m-0">{loadError}</p>
+          <button type="button" onClick={loadData} className="text-xs font-bold underline">Try again</button>
+        </div>
       ) : activeTab === "submissions" ? (
         /* My Submissions Tab View */
         <div className="space-y-4">
@@ -205,7 +215,7 @@ export function BountyMarketplace({ onSelectBountyPreset, activeRole }: Props) {
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-900">Bounty #{sub.bountyId} Submission</span>
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px] border border-amber-200">
-                    {sub.status}
+                    {sub.reviewStatus}
                   </span>
                 </div>
                 <p className="text-slate-600 font-mono break-all m-0">{sub.proofUrl}</p>
@@ -219,7 +229,11 @@ export function BountyMarketplace({ onSelectBountyPreset, activeRole }: Props) {
         </div>
       ) : (
         /* Rich Bounty Opportunity Cards Grid */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        displayedBounties.length === 0 ? (
+          <div className="py-12 text-center text-slate-500 text-xs font-semibold">
+            No bounties match the selected filters.
+          </div>
+        ) : <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {displayedBounties.map((bounty) => {
             const skills = getSkillsForBounty(bounty.category);
             return (
@@ -269,7 +283,7 @@ export function BountyMarketplace({ onSelectBountyPreset, activeRole }: Props) {
                   <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium pt-1 border-t border-slate-100">
                     <span className="flex items-center gap-1">
                       <Tag className="w-3.5 h-3.5 text-slate-400" />
-                      Sponsor: <strong className="text-slate-900 font-bold">{bounty.sponsor}</strong>
+                      Sponsor: <strong className="text-slate-900 font-bold">{bounty.creator.displayName}</strong>
                     </span>
                     <span className="flex items-center gap-1 text-slate-500">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
