@@ -2,240 +2,159 @@
 
 [![CI](https://github.com/JmGarcia30/studystake_bounties/actions/workflows/ci.yml/badge.svg)](https://github.com/JmGarcia30/studystake_bounties/actions/workflows/ci.yml)
 
-![PICTURE](Stellar_GarciaJM.png)
+StudyStake Bounties is a Stellar Testnet marketplace for educational micro-bounties. Sponsors can fund Soroban escrow tasks, contributors can submit proof of work, and testers can generate the wallet-interaction and feedback evidence required for Level 4 production validation.
 
-A decentralized micro-task board built on Stellar Soroban for student peer-tutoring, with a
-Vite/React/TypeScript frontend for the Level 2 Yellow Belt submission.
+> This MVP uses Stellar Testnet. Do not use mainnet funds or place secret keys, Supabase service-role keys, Sentry auth tokens, or other secrets in `VITE_` variables.
 
-## Level 1 – White Belt
+## Level 4 MVP features
 
-StudyStake includes an easy-to-find, classic Stellar payment flow alongside its Soroban bounty
-features. The frontend uses `@creit.tech/stellar-wallets-kit` (including Freighter) to connect and
-disconnect a wallet, request access, retrieve and display its public key, and sign transactions.
-All account and payment operations use **Stellar Testnet**.
+- Multi-wallet connection and signature verification through Stellar Wallets Kit.
+- Native XLM Testnet balance and wallet-signed XLM payments.
+- Soroban bounty escrow create, accept, lookup, and reward-release flows.
+- Supabase-backed bounty marketplace and proof submissions with a local fallback.
+- Contributor submission history and live contract activity feed.
+- Optional reputation contract integration.
+- Level 4 wallet-interaction evidence and tester feedback collection.
+- Optional GA4 product analytics and Sentry React error monitoring.
+- Loading, success, failure, empty, and disconnected states across critical flows.
 
-The wallet dashboard displays the native XLM balance from Testnet Horizon, including loading,
-unfunded-account, error, and refresh states. The **Send XLM** card builds a standard
-`Operation.payment` with `Asset.native()`, requests the connected wallet's real transaction
-signature, submits the signed envelope to Horizon, and displays success/failure feedback, the
-actual Horizon transaction hash, and a Stellar Expert Testnet link. No secret key, dummy
-signature, fallback signature, or fabricated hash is used.
+## Deployed contracts and network
 
-### Test the White Belt flow
-
-1. Install [Freighter](https://www.freighter.app/).
-2. Set Freighter to **Testnet**.
-3. Fund the test account with [Friendbot](https://friendbot.stellar.org/).
-4. Run the frontend using the setup commands below.
-5. Select **Connect Wallet**, choose Freighter, and approve wallet access.
-6. Verify that the public key, **Stellar Testnet** badge, and native XLM balance appear.
-7. Enter another valid Testnet `G...` address in **Destination Stellar Address**.
-8. Enter a small amount such as `0.1` XLM and select **Send XLM**.
-9. Review and approve the transaction in Freighter.
-10. Verify **XLM sent successfully**, the real transaction hash, and its Stellar Expert Testnet page.
-
-### Level 1 screenshots (manual capture required)
-
-Create `frontend/public/screenshots/level1/` and add these files only after completing the real
-wallet/Testnet flow. Do not use the existing Soroban screenshots as proof of native XLM payment.
-
-- `wallet-connected.png` — connected public key, Disconnect Wallet, and Stellar Testnet badge.
-- `balance-displayed.png` — the connected account's native XLM balance.
-- `xlm-transaction-approved.png` — Freighter approval or confirmed Testnet payment evidence.
-- `xlm-transaction-result.png` — **XLM sent successfully**, actual hash, amount, and explorer link.
-
-
-## Problem & Solution
-**Problem:** A computer science student wants to earn income by peer-tutoring but lacks a way to guarantee payment for micro-transactions ($1–$5) without losing profit to payment gateway fees.
-**Solution:** A Soroban smart contract acts as a trustless escrow vault. The buyer locks funds, which are instantly released to the tutor's wallet only when the work is confirmed complete.
-
-## Timeline
-Bootcamp friendly: Can be deployed and integrated with a frontend in 2-3 days.
-
-## Stellar Features Used
-* Micropayments
-* Soroban smart contracts
-* StellarWalletsKit multi-wallet frontend integration
-* Contract events polled into a live activity feed
-
-## Vision and Purpose
-To empower low-income students to safely participate in the micro-gig economy without predatory fees or fear of digital theft.
-
----
-
-## Project Structure
-
-```
-contracts/studystake_bounties/   # Soroban smart contract (Rust)
-frontend/                        # Vite + React + TypeScript dApp
-rust-toolchain.toml              # Pins the Rust toolchain used to build the contract
-```
-
-## Toolchain
-
-| Tool | Version |
+| Item | Value |
 |---|---|
-| Rust | 1.88.0 (pinned via `rust-toolchain.toml`) |
-| WASM target | `wasm32v1-none` |
-| Stellar CLI | 27.0.0 |
-| Node.js | 20+ |
+| Network | Stellar Testnet |
+| Bounties contract | `CCEBMZKEH4GBRZVYDDGMSXWCHTL57ZIG6YRVZWRHTU4BP6QZVWQPXI7I` |
+| Native-XLM Testnet SAC | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` |
+| Reputation contract | Set with `VITE_REPUTATION_CONTRACT_ID` when deployed |
+| RPC | `https://soroban-testnet.stellar.org` |
+| Horizon | `https://horizon-testnet.stellar.org` |
 
-## Contract
+The contract source is in `contracts/studystake_bounties/src/lib.rs`. Deployment and representative transaction evidence should be recorded in `docs/LEVEL4_SUBMISSION.md`.
 
-Exported functions in `contracts/studystake_bounties/src/lib.rs`:
+## Project structure
 
-* `initialize(admin)` — one-time setup, sets the dispute admin.
-* `create_bounty(buyer, token, amount)` — buyer locks `token` funds in escrow, returns a bounty ID.
-* `accept_bounty(tutor, bounty_id)` — tutor takes an open bounty.
-* `release_funds(buyer, bounty_id)` — buyer releases escrowed funds to the tutor.
-* `resolve_dispute(admin, bounty_id, favor_buyer)` — admin routes funds to buyer or tutor.
-* `get_bounty(bounty_id)` — read a single bounty (read-only, no auth).
-* `get_bounty_count()` — read the total number of bounties created (read-only, no auth).
-
-`create_bounty`, `accept_bounty`, `release_funds`, and `resolve_dispute` each emit a
-`("bounty", <action>)` event with `(bounty_id, actor, amount)` data, which the frontend polls
-via `getEvents` for the live activity feed.
-
-> `src/test.rs` is wired into the crate via `mod test;` in `lib.rs` and runs with `cargo test`
-> (5 tests covering the happy path, dispute resolution both ways, and unauthorized/duplicate
-> action rejections).
-
-### How to Build
-
-```bash
-stellar contract build
-# or, without the Stellar CLI:
-cargo build --target wasm32v1-none --release
+```text
+contracts/studystake_bounties/       Soroban escrow contract and Rust tests
+contracts/studystake_reputation/     Optional reputation contract
+frontend/                            Vite, React, and TypeScript application
+docs/SUPABASE.md                     Persistence schema/policy and evidence queries
+docs/LEVEL4_SUBMISSION.md            Final submission evidence template
+docs/PRODUCTION_SMOKE_TEST.md        Post-deployment validation checklist
 ```
 
-Output: `target/wasm32v1-none/release/studystake_bounties.wasm`
+## Requirements
 
-### Deploying to Testnet
+- Node.js 20+
+- npm
+- Rust 1.88.0, pinned by `rust-toolchain.toml`
+- Stellar CLI 27+ for contract build/deployment work
+- A Stellar wallet such as Freighter configured for Testnet
+- A Friendbot-funded Testnet account for transaction testing
 
-```bash
-# 1. Create (or reuse) a testnet identity
-stellar keys generate deployer --network testnet
+## Frontend environment variables
 
-# 2. Fund it via Friendbot
-stellar keys fund deployer --network testnet
+Copy `frontend/.env.example` to `frontend/.env.local` for local development. Hosting-provider variables must use the same names.
 
-# 3. Deploy the built WASM
-stellar contract deploy \
-  --wasm target/wasm32v1-none/release/studystake_bounties.wasm \
-  --source deployer \
-  --network testnet
+| Variable | Required | Purpose |
+|---|---:|---|
+| `VITE_CONTRACT_ID` | Yes | Deployed StudyStake Bounties contract |
+| `VITE_TOKEN_ID` | Yes | Escrow token contract; configured for the native-XLM Testnet SAC |
+| `VITE_RPC_URL` | Yes | Soroban RPC endpoint |
+| `VITE_HORIZON_URL` | Yes | Horizon endpoint for balances and payments |
+| `VITE_NETWORK_PASSPHRASE` | Yes | Stellar network passphrase |
+| `VITE_REPUTATION_CONTRACT_ID` | No | Optional deployed reputation contract |
+| `VITE_SUPABASE_URL` | No | Public Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | No | Public Supabase anonymous key; never use service role |
+| `VITE_GA_MEASUREMENT_ID` | No | GA4 web-stream measurement ID, such as `G-XXXXXXXXXX` |
+| `VITE_SENTRY_DSN` | No | Public browser Sentry DSN |
+| `VITE_APP_ENV` | No | Monitoring environment, normally `production` |
+| `VITE_APP_RELEASE` | No | Release/commit identifier shown in Sentry |
 
-# 4. Initialize the contract once (admin = your deployer address)
-stellar contract invoke \
-  --id <DEPLOYED_CONTRACT_ADDRESS> \
-  --source deployer \
-  --network testnet \
-  -- initialize --admin <YOUR_ADMIN_ADDRESS>
-```
+If Supabase variables are absent, bounty metadata and proof flows use `LocalBountyRepository`; shared Level 4 evidence and feedback are not persisted. If GA4 or Sentry variables are absent, their provider is a no-op and the app continues normally.
 
-Copy the resulting contract address into `frontend/.env` as `VITE_CONTRACT_ID`.
+## Supabase setup
 
-## Yellow Belt Level 2 Proof
+1. Create or select a Supabase project.
+2. Apply the Phase 2 schema for `bounties`, `proof_submissions`, `wallet_interactions`, and `user_feedback`.
+3. Enable RLS and apply the MVP policies documented in `docs/SUPABASE.md`.
+4. Add the project URL and anon key to the frontend environment.
+5. Keep evidence and feedback browser access insert-only; use protected Supabase tooling for reviewer totals and recent rows.
+6. Run the verification/evidence queries in `docs/SUPABASE.md`.
 
-* **Deployed Contract Address:** `CCEBMZKEH4GBRZVYDDGMSXWCHTL57ZIG6YRVZWRHTU4BP6QZVWQPXI7I`
-* **Contract Deploy Transaction Hash:** `18d81d9cf6470562686116fabaf1a8df0cd95c2fe352b271568fdc86bd29aa19`
-* **Frontend Contract Call Transaction Hash:** `209b1e3965aec3ab66d232de0d0bc32b6f37f172cb13a5be1089b36b749c10fd`
-
----
-
-## Frontend
-
-Located in `frontend/`. Built with Vite + React + TypeScript, `@stellar/stellar-sdk`, and
-`@creit.tech/stellar-wallets-kit` for multi-wallet support (Freighter, xBull, Lobstr, hardware
-wallets, etc — whichever the kit's `defaultModules()` detects as installed).
-
-### Setup
+## Run locally
 
 ```bash
 cd frontend
-cp .env.example .env
-# edit .env: paste your deployed VITE_CONTRACT_ID
 npm install
-npm run dev       # starts the dev server (see terminal for the local URL)
+# Copy .env.example to .env.local and enter public configuration values.
+npm run dev
 ```
 
-Other scripts: `npm run build`, `npm run preview`.
+Open the Vite URL, set the wallet to Stellar Testnet, and fund the account through Friendbot before testing payments or escrow actions.
 
-### Environment variables (`frontend/.env`, see `.env.example`)
+## Test and build
 
-| Variable | Purpose |
-|---|---|
-| `VITE_CONTRACT_ID` | Deployed StudyStake Bounties contract address |
-| `VITE_TOKEN_ID` | Escrow token contract (defaults to the testnet native-XLM SAC, editable in the UI) |
-| `VITE_RPC_URL` | Soroban RPC endpoint (testnet) |
-| `VITE_HORIZON_URL` | Horizon endpoint (testnet), used to read XLM balances |
-| `VITE_NETWORK_PASSPHRASE` | Testnet network passphrase |
+From `frontend/`:
 
-No private keys or secrets are stored anywhere in this project — all signing happens in the
-user's connected wallet extension.
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+npm run preview
+```
 
-### Features
+Contract tests/builds run from the repository root:
 
-* **Wallet panel** — connect/disconnect via the wallet picker modal, shows the connected public
-  key and a "Stellar Testnet" network badge.
-* **Balance panel** — fetches the connected wallet's XLM balance from Horizon, with loading and
-  error states (including "unfunded account").
-* **Contract panel** — shows the configured contract address; read section (`get_bounty_count`,
-  look up a bounty by ID); write section (`initialize`, `create_bounty`, `accept_bounty`,
-  `release_funds`) using the connected wallet as buyer/tutor/admin.
-* **Transaction status panel** — `idle | pending | success | failed`, with a friendly error
-  message and a link to the tx hash on [Stellar Expert](https://stellar.expert/explorer/testnet).
-* **Live Activity feed** — polls recent contract events every ~6s and lists them newest-first;
-  balance and bounty count refresh automatically after every successful transaction.
+```bash
+cargo test
+stellar contract build
+```
 
-### Handled wallet/transaction errors
+## Analytics and monitoring
 
-1. **No wallet available** — surfaced when the kit finds no installed/supported wallet.
-2. **User rejected** connect or transaction signing — surfaced as "You cancelled the request in
-   your wallet."
-3. **Insufficient balance / simulation or submission failure** — surfaced as the underlying
-   RPC/contract error message (e.g. failed simulation, trustline missing, contract panic).
+The frontend has vendor-isolated providers under `frontend/src/lib/`:
 
-See `frontend/src/lib/wallet.ts` (`toFriendlyError`) for the mapping.
+- `analytics.ts` conditionally loads the GA4 Google tag and sends named product events.
+- `monitoring.ts` conditionally initializes Sentry React and reports errors caught by the application error boundary.
 
----
+Tracked analytics events are `wallet_connected`, `proof_submitted`, `xlm_payment_sent`, `escrow_created`, `bounty_accepted`, `reward_released`, `feedback_submitted`, and `evidence_page_viewed`. Analytics does not send wallet addresses, proof URLs, feedback text, or transaction hashes. Those records remain in the controlled Supabase evidence workflow.
 
-## Manual setup checklist
+For production validation, use GA4 Realtime/DebugView and Sentry Issues/settings. Capture screenshots after running `docs/PRODUCTION_SMOKE_TEST.md`.
 
-- [x] Install a Stellar wallet browser extension (e.g. [Freighter](https://www.freighter.app/))
-      and switch it to **Testnet**.
-- [x] Fund your wallet address via [Friendbot](https://friendbot.stellar.org/).
-- [x] Deploy the contract (see above) and fill in the deployed contract address here and in
-      `frontend/.env` — see [Yellow Belt Level 2 Proof](#yellow-belt-level-2-proof).
-- [x] Call `initialize` once, then use the frontend to create/accept/release a bounty and record
-      the resulting transaction hash — see [Yellow Belt Level 2 Proof](#yellow-belt-level-2-proof).
-- [x] Capture remaining screenshots (see checklist below) and add them to this README.
+## Level 4 evidence collection
 
-## Screenshots
+Supabase captures successful wallet, proof, XLM payment, and escrow interactions plus tester rating/comment submissions. Evidence writes are best-effort: analytics or evidence failures do not rewrite transaction logic or turn a successful blockchain/product operation into a failure.
 
+Use:
 
-### Wallet connected
-![Wallet connected](frontend/public/screenshots/wallet-connected.jpg)
+- `docs/SUPABASE.md` for evidence queries and RLS notes.
+- `docs/PRODUCTION_SMOKE_TEST.md` after deployment.
+- `docs/LEVEL4_SUBMISSION.md` to assemble URLs, screenshots, 10-user results, feedback summary, demo video, limitations, and final checklist.
 
-### Balance displayed
-![Balance displayed](frontend/public/screenshots/balance-displayed.jpg)
+## Production deployment
 
-### Contract call transaction success
-![Transaction success](frontend/public/screenshots/transaction-success.jpg)
+1. Run all frontend verification commands.
+2. Create a production project on a static Vite-compatible host.
+3. Set public environment variables in the host; do not upload local env files.
+4. Build with `npm run build` and publish `frontend/dist`.
+5. Configure SPA fallback to `index.html` if the host requires it.
+6. Run the production smoke-test checklist on the deployed URL.
+7. Verify Supabase rows, GA4 Realtime events, Sentry environment/release, and Stellar Expert transaction links.
+8. Record the production URL, release commit, screenshots, and demo video in the submission document.
 
-### Live activity feed
-![Live activity feed](frontend/public/screenshots/live-activity.jpg)
+## Known production considerations
 
-### Bounty read result
-![Bounty read result](frontend/public/screenshots/bounty-read.jpg)
+- The current deployment is testnet-only.
+- Anonymous evidence insert policies are suitable for MVP testing but require stronger identity, abuse prevention, and rate limiting before mainnet use.
+- Browser analytics may be blocked by privacy tools and should not be treated as financial evidence.
+- Closing a tab without selecting Disconnect cannot emit a disconnect event.
+- Sentry source-map upload is not configured because it requires a private build-time auth token; add it only through the hosting CI secret store if needed later.
 
-### Screenshots checklist
+## Demo and evidence
 
-- [x] Wallet options available (picker modal open)
-- [x] Wallet connected (public key + testnet badge visible)
-- [x] Balance displayed
-- [x] Contract call transaction success (Transaction Status panel showing `success` + tx hash)
-- [x] Activity/feed status update (Live Activity panel with at least one item)
+The existing video folder is available at:
 
-## StudyStake Video Link
 https://drive.google.com/drive/folders/1cnY5wSDLDIY0rMTPq7BmYrrUxvYiIzho?usp=sharing
+
+Replace or supplement it with the final Level 4 production walkthrough and complete every `TODO` in `docs/LEVEL4_SUBMISSION.md` before submission.

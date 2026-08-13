@@ -3,6 +3,7 @@ import type { UserProfile, UserRole, AuthLoadingStep } from "../types/user";
 import { stellarAdapter, createAuthChallenge, verifyWalletSignature } from "../lib/stellar";
 import { fetchUserProfile, saveUserProfile } from "../services/userService";
 import { logWalletInteraction } from "../services/communityService";
+import { trackEvent } from "../lib/analytics";
 
 export interface AuthContextValue {
   walletAddress: string | null;
@@ -93,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserProfile(null);
       }
 
+      trackEvent("wallet_connected", { source: "wallet_auth" });
       void logWalletInteraction({
         walletAddress: address,
         interactionType: "wallet_connected",

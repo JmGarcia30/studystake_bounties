@@ -4,6 +4,7 @@ import type { Bounty } from "../../types/bounty";
 import { submitBountyProof } from "../../services/bountyService";
 import { useAuth } from "../../hooks/useAuth";
 import { logWalletInteraction } from "../../services/communityService";
+import { trackEvent } from "../../lib/analytics";
 
 interface Props {
   bounty: Bounty;
@@ -44,6 +45,7 @@ export function SubmitProofModal({ bounty, onClose, onSuccess }: Props) {
         proofUrl: proofUrl.trim(),
         notes: notes.trim(),
       });
+      trackEvent("proof_submitted", { bounty_id: bounty.id, bounty_category: bounty.category });
       void logWalletInteraction({
         walletAddress,
         interactionType: "proof_submitted",

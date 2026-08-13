@@ -2,6 +2,7 @@ import { useState } from "react";
 import { EXPLORER_TX_URL } from "../lib/config";
 import { sendXlm, type PaymentStatus } from "../lib/payments";
 import { logWalletInteraction } from "../services/communityService";
+import { trackEvent } from "../lib/analytics";
 
 interface Props { address: string | null; onSuccess: () => void; }
 type UiStatus = "idle" | PaymentStatus | "success" | "failed";
@@ -26,6 +27,7 @@ export function SendXlmPanel({ address, onSuccess }: Props) {
       const result = await sendXlm({ sourceAddress: address ?? "", destinationAddress: destination, amount, onStatus: setStatus });
       setHash(result.hash); setStatus("success"); onSuccess();
       if (address && result.hash) {
+        trackEvent("xlm_payment_sent", { amount_xlm: amount });
         void logWalletInteraction({
           walletAddress: address, interactionType: "xlm_payment_sent", transactionHash: result.hash,
           metadata: { source: "send_xlm", app_area: "dashboard", destination: destination.trim(), amount_xlm: amount },

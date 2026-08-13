@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { CheckCircle2, ClipboardCheck, Database, Loader2, MessageSquare, ShieldCheck } from "lucide-react";
 import { getSupabaseConfig } from "../lib/supabase";
 import { submitUserFeedback } from "../services/communityService";
+import { trackEvent } from "../lib/analytics";
 
 interface Props { walletAddress: string | null; }
 
@@ -11,6 +12,10 @@ export function Level4Evidence({ walletAddress }: Props) {
   const [feedback, setFeedback] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    trackEvent("evidence_page_viewed", { supabase_configured: supabaseConfigured });
+  }, [supabaseConfigured]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -23,6 +28,7 @@ export function Level4Evidence({ walletAddress }: Props) {
     setError(null);
     try {
       await submitUserFeedback({ walletAddress, rating, feedback });
+      trackEvent("feedback_submitted", { rating, wallet_connected: Boolean(walletAddress) });
       setFeedback("");
       setStatus("success");
     } catch (submissionError) {

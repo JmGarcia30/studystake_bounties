@@ -2,6 +2,7 @@ import { useState } from "react";
 import { callContract, type TxStatus, type WriteMethod } from "../lib/contract";
 import { formatErrorMessage } from "../lib/errors";
 import { logWalletInteraction } from "../services/communityService";
+import { trackEvent } from "../lib/analytics";
 
 interface UseContractActionOptions {
   address: string | null;
@@ -32,6 +33,7 @@ export function useContractAction({ address, onTxUpdate, onSuccess }: UseContrac
         : method === "accept_bounty" ? "bounty_accepted"
         : method === "release_funds" ? "reward_released" : null;
       if (interactionType && hash) {
+        trackEvent(interactionType, { contract_method: method });
         const bountyId = typeof args.bounty_id === "number" ? args.bounty_id
           : typeof result === "number" ? result : undefined;
         void logWalletInteraction({
