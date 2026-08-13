@@ -6,6 +6,12 @@ StudyStake Bounties is a Stellar Testnet marketplace for educational micro-bount
 
 > This MVP uses Stellar Testnet. Do not use mainnet funds or place secret keys, Supabase service-role keys, Sentry auth tokens, or other secrets in `VITE_` variables.
 
+## StudyStake Screenshots and Video
+
+View the product UI screenshots, mobile responsive design captures, analytics setup, and demo walkthrough videos:
+
+📁 **[Google Drive Folder — StudyStake Screenshots and Video](https://drive.google.com/drive/folders/1cnY5wSDLDIY0rMTPq7BmYrrUxvYiIzho?usp=sharing)**
+
 ## Level 4 MVP features
 
 - Multi-wallet connection and signature verification through Stellar Wallets Kit.
@@ -155,10 +161,10 @@ The recommended frontend hosting target is Vercel with the project Root Director
 - Closing a tab without selecting Disconnect cannot emit a disconnect event.
 - Sentry source-map upload is not configured because it requires a private build-time auth token; add it only through the hosting CI secret store if needed later.
 
-## Demo and evidence
+## StudyStake Screenshots and Video
 
-The existing video folder is available at:
+View the product UI screenshots, mobile responsive design captures, analytics setup, and demo walkthrough videos:
 
-https://drive.google.com/drive/folders/1cnY5wSDLDIY0rMTPq7BmYrrUxvYiIzho?usp=sharing
+📁 **[Google Drive Folder — StudyStake Screenshots and Video](https://drive.google.com/drive/folders/1cnY5wSDLDIY0rMTPq7BmYrrUxvYiIzho?usp=sharing)**
 
 Replace or supplement it with the final Level 4 production walkthrough and complete every `TODO` in `docs/LEVEL4_SUBMISSION.md` before submission.

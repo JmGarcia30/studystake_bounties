@@ -53,7 +53,7 @@ export function validateConfig(env: Record<string, string | undefined>): AppConf
   if (problems.length > 0) {
     throw new Error(
       `Invalid frontend configuration:\n${problems.map((p) => `  - ${p}`).join("\n")}\n` +
-        `Copy frontend/.env.example to frontend/.env and fill in real values.`,
+      `Copy frontend/.env.example to frontend/.env and fill in real values.`,
     );
   }
 

@@ -3,6 +3,12 @@ test_snapshots/
 frontend/node_modules
 frontend/dist
 frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+.env*
+*.seed.json
+*.seed.log
+seed_secrets*
 
 # Deployment: real config (has an identity name, never a secret key) and
 # machine-generated deployment output both stay local.

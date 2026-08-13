@@ -1,6 +1,6 @@
-import { LayoutDashboard, Target, PlusCircle, Award, Radio, ExternalLink, ClipboardCheck } from "lucide-react";
+import { LayoutDashboard, Target, PlusCircle, Award, Radio, ExternalLink, ClipboardCheck, Users } from "lucide-react";
 
-export type NavTab = "dashboard" | "marketplace" | "escrow" | "reputation" | "events" | "evidence";
+export type NavTab = "dashboard" | "marketplace" | "escrow" | "reputation" | "events" | "evidence" | "ecosystem";
 
 interface Props {
   activeTab: NavTab;
@@ -10,6 +10,7 @@ interface Props {
 export function Sidebar({ activeTab, onTabChange }: Props) {
   const navItems: { id: NavTab; label: string; icon: typeof LayoutDashboard; badge?: string }[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "ecosystem", label: "Wallet Ecosystem", icon: Users, badge: "15" },
     { id: "marketplace", label: "Opportunities", icon: Target, badge: "12" },
     { id: "escrow", label: "Sponsor Hub", icon: PlusCircle },
     { id: "reputation", label: "Reputation", icon: Award },

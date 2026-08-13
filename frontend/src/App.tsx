@@ -13,6 +13,7 @@ import { ActivityFeed } from "./components/ActivityFeed";
 import { ReputationPanel } from "./components/ReputationPanel";
 import { SendXlmPanel } from "./components/SendXlmPanel";
 import { Level4Evidence } from "./components/Level4Evidence";
+import { MockWalletDashboard } from "./components/dashboard/MockWalletDashboard";
 import type { TxStatus } from "./lib/contract";
 import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -93,7 +94,7 @@ function DashboardLayout() {
           onOpenSettings={() => setSettingsOpen(true)}
         />
 
-        <main className="p-6 sm:p-8 w-full max-w-none space-y-6">
+        <main className="p-3.5 sm:p-6 lg:p-8 w-full max-w-none space-y-6">
           {/* TAB 1: DASHBOARD OVERVIEW (Clean Overview) */}
           {activeTab === "dashboard" && (
             <div className="flex flex-col lg:flex-row gap-8 w-full">
@@ -207,6 +208,7 @@ function DashboardLayout() {
           )}
 
           {activeTab === "evidence" && <Level4Evidence walletAddress={walletAddress} />}
+          {activeTab === "ecosystem" && <MockWalletDashboard />}
 
           {/* Background mounted fallback for test runner compliance on missing panels per tab */}
           <div className="hidden">
