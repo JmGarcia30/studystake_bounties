@@ -35,3 +35,61 @@ and inserts/reads proof submissions. `communityService` exposes explicit writes
 for wallet interaction evidence and user feedback. Database errors include the
 operation, Supabase error code when available, and the original message so UI
 callers can display actionable failures.
+
+## Phase 3 Level 4 evidence
+
+Evidence writes are best-effort and run only after the primary action succeeds. A
+Supabase logging failure does not change a successful wallet, proof, payment, or
+contract result. When Supabase environment values are absent, the existing local
+bounty repository remains active; the Evidence tab identifies local fallback mode
+and disables shared feedback submission.
+
+The frontend writes these `wallet_interactions.interaction_type` values:
+
+- `wallet_connected` after wallet authentication and signature verification.
+- `wallet_disconnected` with the address captured before local auth state clears.
+- `proof_submitted` only after the proof row is created successfully.
+- `xlm_payment_sent` only after a native XLM payment returns a transaction hash.
+- `escrow_created`, `bounty_accepted`, and `reward_released` only when the
+  corresponding contract call returns a transaction hash.
+
+Interaction metadata records the app area/source and available bounty, payment,
+or contract context. Feedback records a rating from 1 through 5, trimmed feedback
+text, and the connected wallet address when available.
+
+### Required anon policies
+
+Phase 3 requires anonymous/authenticated `INSERT` access to
+`wallet_interactions` and `user_feedback`. It does not require browser `SELECT`,
+`UPDATE`, or `DELETE` access for either table. Keep those records write-only in
+the MVP and use the Supabase Table Editor or SQL Editor for evidence review.
+The existing Phase 2 `SELECT`/`INSERT` policies for proof submissions and bounty
+policies remain unchanged.
+
+Use these SQL Editor queries for Level 4 totals and screenshots:
+
+```sql
+select count(*) as total_wallet_interactions,
+       count(distinct wallet_address) as distinct_wallets
+from public.wallet_interactions;
+
+select interaction_type, count(*) as total
+from public.wallet_interactions
+group by interaction_type
+order by interaction_type;
+
+select created_at, wallet_address, interaction_type, transaction_hash,
+       contract_escrow_id, metadata
+from public.wallet_interactions
+order by created_at desc
+limit 25;
+
+select count(*) as total_feedback,
+       round(avg(rating)::numeric, 2) as average_rating
+from public.user_feedback;
+
+select created_at, wallet_address, rating, feedback
+from public.user_feedback
+order by created_at desc
+limit 25;
+```

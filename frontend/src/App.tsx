@@ -12,6 +12,7 @@ import { StatusPanel } from "./components/StatusPanel";
 import { ActivityFeed } from "./components/ActivityFeed";
 import { ReputationPanel } from "./components/ReputationPanel";
 import { SendXlmPanel } from "./components/SendXlmPanel";
+import { Level4Evidence } from "./components/Level4Evidence";
 import type { TxStatus } from "./lib/contract";
 import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -204,6 +205,8 @@ function DashboardLayout() {
               />
             </div>
           )}
+
+          {activeTab === "evidence" && <Level4Evidence walletAddress={walletAddress} />}
 
           {/* Background mounted fallback for test runner compliance on missing panels per tab */}
           <div className="hidden">

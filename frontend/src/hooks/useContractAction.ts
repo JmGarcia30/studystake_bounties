@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { callContract, type TxStatus, type WriteMethod } from "../lib/contract";
 import { formatErrorMessage } from "../lib/errors";
+import { logWalletInteraction } from "../services/communityService";
 
 interface UseContractActionOptions {
   address: string | null;
@@ -10,7 +11,7 @@ interface UseContractActionOptions {
 
 /**
  * Runs one contract write action at a time and tracks which one (if any) is
- * pending, so the UI can show a specific "Creating…"/"Accepting…" label on
+ * pending, so the UI can show a specific "Creating..."/"Accepting..." label on
  * the button that triggered it instead of one generic busy flag.
  */
 export function useContractAction({ address, onTxUpdate, onSuccess }: UseContractActionOptions) {
@@ -27,6 +28,17 @@ export function useContractAction({ address, onTxUpdate, onSuccess }: UseContrac
       }
       onTxUpdate("success", hash);
       onSuccess();
+      const interactionType = method === "create_bounty" ? "escrow_created"
+        : method === "accept_bounty" ? "bounty_accepted"
+        : method === "release_funds" ? "reward_released" : null;
+      if (interactionType && hash) {
+        const bountyId = typeof args.bounty_id === "number" ? args.bounty_id
+          : typeof result === "number" ? result : undefined;
+        void logWalletInteraction({
+          walletAddress: address, interactionType, transactionHash: hash, contractEscrowId: bountyId,
+          metadata: { source: "sponsor_hub", app_area: "contract", contract_method: method, bounty_id: bountyId },
+        }).catch((logError) => console.warn("Contract interaction evidence was not recorded.", logError));
+      }
       return result;
     } finally {
       setPendingAction(null);

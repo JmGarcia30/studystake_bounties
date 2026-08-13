@@ -52,6 +52,7 @@ export interface CreateProofSubmissionInput {
 export type WalletInteractionType =
   | "wallet_connected"
   | "wallet_disconnected"
+  | "xlm_payment_sent"
   | "payment_submitted"
   | "escrow_created"
   | "bounty_accepted"

@@ -4,14 +4,17 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sendXlm } from "../lib/payments";
 import { SendXlmPanel } from "./SendXlmPanel";
+import { logWalletInteraction } from "../services/communityService";
 
 vi.mock("../lib/payments", () => ({ sendXlm: vi.fn() }));
+vi.mock("../services/communityService", () => ({ logWalletInteraction: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("../lib/config", () => ({
   EXPLORER_TX_URL: (hash: string) => `https://stellar.expert/explorer/testnet/tx/${hash}`,
 }));
 
 const ADDRESS = "GBUFJT7DPW2JELFSBRZJR53DCYRGG7BX4LA2ECJB7PUDXGP33EKJVJBF";
 const mockSendXlm = vi.mocked(sendXlm);
+const mockLogWalletInteraction = vi.mocked(logWalletInteraction);
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); mockSendXlm.mockReset(); });
 
@@ -39,6 +42,9 @@ describe("SendXlmPanel", () => {
     await waitFor(() => expect(screen.getByText("XLM sent successfully")).toBeInTheDocument());
     expect(screen.getByRole("link", { name: "network-hash-123" })).toHaveAttribute("href", expect.stringContaining("/testnet/tx/network-hash-123"));
     expect(onSuccess).toHaveBeenCalledOnce();
+    expect(mockLogWalletInteraction).toHaveBeenCalledWith(expect.objectContaining({
+      walletAddress: ADDRESS, interactionType: "xlm_payment_sent", transactionHash: "network-hash-123",
+    }));
   });
 
   it("prevents duplicate submissions while pending", async () => {
