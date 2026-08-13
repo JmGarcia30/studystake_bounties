@@ -26,13 +26,43 @@ function mapContractErrorCode(message: string): string | null {
   return CONTRACT_ERROR_MESSAGES[code] ?? `Contract rejected the transaction (error #${code}).`;
 }
 
+/** Safely converts any error type (Error, object, string, SDK response) to a clean human-readable string without producing [object Object]. */
+export function formatErrorMessage(err: unknown): string {
+  if (!err) return "";
+  if (typeof err === "string") {
+    return err === "[object Object]" ? "Transaction failed. Please check wallet connection." : err;
+  }
+  if (err instanceof Error) {
+    return err.message || "An unexpected error occurred.";
+  }
+  if (typeof err === "object") {
+    const obj = err as Record<string, unknown>;
+    if (typeof obj.message === "string" && obj.message) return obj.message;
+    if (typeof obj.error === "string" && obj.error) return obj.error;
+    if (typeof obj.details === "string" && obj.details) return obj.details;
+    if (typeof obj.reason === "string" && obj.reason) return obj.reason;
+    if (typeof obj.description === "string" && obj.description) return obj.description;
+
+    try {
+      const json = JSON.stringify(err);
+      if (json && json !== "{}" && json !== "[]") {
+        return json;
+      }
+    } catch {
+      // JSON stringify fallback
+    }
+  }
+  const str = String(err);
+  return str === "[object Object]" ? "Transaction simulation or wallet authorization failed." : str;
+}
+
 /**
  * Maps kit/wallet/contract errors to user-friendly messages: no wallet
  * available, user rejected, a known typed contract error, or everything
  * else (simulation/submission failures).
  */
 export function toFriendlyError(err: unknown): Error {
-  const message = err instanceof Error ? err.message : String(err);
+  const message = formatErrorMessage(err);
 
   // Checked first: a typed contract error code is unambiguous, so it takes
   // priority over the looser substring heuristics below.

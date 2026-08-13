@@ -236,3 +236,6 @@ See `frontend/src/lib/wallet.ts` (`toFriendlyError`) for the mapping.
 - [x] Balance displayed
 - [x] Contract call transaction success (Transaction Status panel showing `success` + tx hash)
 - [x] Activity/feed status update (Live Activity panel with at least one item)
+
+## StudyStake Video Link
+https://drive.google.com/drive/folders/1cnY5wSDLDIY0rMTPq7BmYrrUxvYiIzho?usp=sharing

@@ -1,115 +1,179 @@
+/* StudyStake Modern SaaS Design System (Linear/Vercel Aesthetic) */
+
 .app {
   text-align: left;
-  padding: 24px;
-  max-width: 720px;
-  margin: 0 auto;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   box-sizing: border-box;
-}
-
-header p {
-  margin-top: 4px;
+  font-family: 'Inter', sans-serif;
 }
 
 .panel {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
   box-sizing: border-box;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease-in-out;
+  font-family: 'Inter', sans-serif;
 }
 
-/* Short status panels sit side by side when there's room, and collapse to a
-   single column automatically (via auto-fit) on narrow screens — no extra
-   breakpoint needed for this part of the layout. */
+.panel:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+}
+
 .panel-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
 }
 
 .panel-grid .panel {
   margin-bottom: 0;
 }
 
+.panel h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 0;
+  margin-bottom: 0.375rem;
+  letter-spacing: -0.01em;
+  font-family: 'Inter', sans-serif;
+}
+
 .panel h3 {
-  margin: 20px 0 8px;
-  font-size: 16px;
+  margin: 1.25rem 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.375rem;
+  font-family: 'Inter', sans-serif;
 }
 
 .muted {
-  color: var(--text);
-  opacity: 0.7;
-  font-size: 14px;
+  color: #64748b;
+  font-size: 0.875rem;
 }
 
 .error {
-  color: #d33;
-  font-size: 14px;
+  color: #ef4444;
+  font-size: 0.875rem;
 }
 
 .row {
   display: flex;
-  gap: 8px;
+  gap: 0.75rem;
   align-items: center;
-  margin: 8px 0;
+  margin: 0.75rem 0;
   flex-wrap: wrap;
 }
 
-.payment-panel { border-color: var(--accent-border); }
+.row input {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  color: #0f172a;
+  outline: none;
+  font-size: 0.875rem;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.row input:focus {
+  border-color: #6c5ce7;
+  box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.2);
+}
+
+
+.payment-panel {
+  border-color: rgba(108, 92, 231, 0.35);
+  background: linear-gradient(145deg, #ffffff, #faf9ff);
+}
 
 .payment-form {
   display: grid;
-  grid-template-columns: minmax(170px, auto) 1fr;
-  gap: 10px 12px;
+  grid-template-columns: minmax(180px, auto) 1fr;
+  gap: 0.75rem;
   align-items: center;
-  margin: 16px 0;
+  margin: 1rem 0;
+}
+
+.payment-form label {
+  color: #475569;
+  font-size: 0.8125rem;
+  font-weight: 700;
 }
 
 .payment-form input {
   min-width: 0;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: transparent;
-  color: inherit;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.payment-form input:focus {
+  border-color: #6c5ce7;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.2);
 }
 
 .payment-form button { grid-column: 2; justify-self: start; }
-.payment-result p { margin-top: 8px; overflow-wrap: anywhere; }
+.payment-result p { margin-top: 0.5rem; overflow-wrap: anywhere; }
 
-.row input {
-  flex: 1;
-  min-width: 120px;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: transparent;
-  color: inherit;
+@media (max-width: 640px) {
+  .payment-form { grid-template-columns: 1fr; }
+  .payment-form button { grid-column: 1; width: 100%; }
 }
-
-button {
-  padding: 6px 14px;
-  border-radius: 4px;
-  border: 1px solid var(--accent-border);
-  background: var(--accent-bg);
-  color: var(--text-h);
+.btn-primary {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(108, 92, 231, 0.3);
+  background-color: #6c5ce7;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.btn-primary:hover:not(:disabled) {
+  background-color: #5b4bd6;
+  border-color: #5b4bd6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.2);
 }
 
 .network-badge {
-  display: inline-block;
-  font-size: 13px;
-  padding: 2px 8px;
-  border-radius: 12px;
-  background: var(--accent-bg);
-  color: var(--accent);
-  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background-color: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  margin-bottom: 0.75rem;
 }
 
 .address code,
@@ -118,48 +182,50 @@ button:disabled {
 }
 
 .balance {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
 }
 
 .status {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .status-idle {
-  color: var(--text);
+  color: #64748b;
 }
 
 .status-pending {
-  color: #d9a441;
+  color: #d97706;
 }
 
 .status-success {
-  color: #2a9d5c;
+  color: #10b981;
 }
 
 .status-failed {
-  color: #d33;
+  color: #ef4444;
 }
 
 .stream-status {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
 }
 
 .stream-status-loading,
 .stream-status-reconnecting {
-  color: #d9a441;
+  color: #d97706;
 }
 
 .stream-status-live {
-  color: #2a9d5c;
+  color: #10b981;
 }
 
 .stream-status-error {
-  color: #d33;
+  color: #ef4444;
 }
 
 .stream-status,
@@ -170,75 +236,69 @@ button:disabled {
 .activity-list {
   list-style: none;
   padding: 0;
-  margin: 8px 0 0;
+  margin: 0.75rem 0 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.625rem;
 }
 
 .activity-list li {
-  font-size: 14px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+  padding: 0.875rem;
+  background-color: #f8fafc;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
   overflow-wrap: anywhere;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.activity-list li:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .activity-local {
-  opacity: 0.85;
+  opacity: 0.95;
+  border-color: #fde68a !important;
+  background-color: #fffbeb !important;
 }
 
 .local-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6875rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-
-  .payment-form { grid-template-columns: 1fr; }
-  .payment-form button { grid-column: 1; }
-  color: #d9a441;
-  border: 1px solid #d9a441;
-  border-radius: 10px;
-  padding: 1px 6px;
+  letter-spacing: 0.05em;
+  color: #b45309;
+  background-color: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
 }
 
 .bounty-detail {
-  background: var(--code-bg);
-  padding: 12px;
-  border-radius: 4px;
+  background-color: #f8fafc;
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
   overflow-x: auto;
-  font-size: 13px;
+  font-size: 0.8125rem;
+  color: #0f172a;
 }
 
 .hash {
   overflow-wrap: anywhere;
   word-break: break-all;
+  color: #6c5ce7;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-@media (max-width: 480px) {
-  .app {
-    padding: 16px;
-  }
-
-  .panel {
-    padding: 16px;
-  }
-
-  /* Inputs and their buttons stack full-width instead of squeezing onto
-     one cramped line — flex-wrap alone isn't enough once labels get long
-     (e.g. "Accept bounty (tutor = connected wallet)"). */
-  .row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .row input {
-    width: 100%;
-    min-width: 0;
-  }
-
-  button {
-    width: 100%;
-    padding: 10px 14px;
-  }
+.hash:hover {
+  color: #5b4bd6;
 }

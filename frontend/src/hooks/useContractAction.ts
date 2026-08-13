@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { callContract, type TxStatus, type WriteMethod } from "../lib/contract";
+import { formatErrorMessage } from "../lib/errors";
 
 interface UseContractActionOptions {
   address: string | null;
@@ -19,11 +20,9 @@ export function useContractAction({ address, onTxUpdate, onSuccess }: UseContrac
     if (!address) return undefined;
     setPendingAction(method);
     try {
-      // callContract already catches and friendly-maps its own errors — it
-      // never rejects, so no try/catch is needed around this call itself.
       const { hash, result, error } = await callContract(method, args as never, address, onTxUpdate);
       if (error) {
-        onTxUpdate("failed", undefined, error);
+        onTxUpdate("failed", undefined, formatErrorMessage(error));
         return undefined;
       }
       onTxUpdate("success", hash);
