@@ -19,7 +19,7 @@ export function HeroBanner({ onExploreClick }: Props) {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none" />
 
       <div className="relative z-10 space-y-6">
-        
+
         {/* Top Role Badge */}
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-bold uppercase tracking-wider text-purple-100">
           {isStudent ? (

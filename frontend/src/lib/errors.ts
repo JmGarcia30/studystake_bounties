@@ -42,7 +42,7 @@ export function formatErrorMessage(err: unknown): string {
     if (typeof obj.details === "string" && obj.details) return obj.details;
     if (typeof obj.reason === "string" && obj.reason) return obj.reason;
     if (typeof obj.description === "string" && obj.description) return obj.description;
-    
+
     try {
       const json = JSON.stringify(err);
       if (json && json !== "{}" && json !== "[]") {

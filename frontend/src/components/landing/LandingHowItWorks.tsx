@@ -63,7 +63,7 @@ export function LandingHowItWorks() {
   return (
     <section id="how-it-works" className="w-full py-20 lg:py-28 px-6 border-t border-slate-800/80 bg-[#0F172A]">
       <div className="max-w-6xl mx-auto space-y-16">
-        
+
         {/* Header */}
         <div className="flex flex-col items-center text-center space-y-4 max-w-2xl mx-auto">
           <h2 className="text-3xl sm:text-5xl font-black text-white !text-white tracking-tight">

@@ -64,13 +64,13 @@ export function BountyMarketplace({ onSelectBountyPreset, activeRole }: Props) {
     loadData();
   }, [loadData]);
 
-  const displayedBounties = activeTab === "recommended" 
-    ? bounties.slice(0, 2) 
+  const displayedBounties = activeTab === "recommended"
+    ? bounties.slice(0, 2)
     : bounties;
 
   return (
     <section className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6 w-full font-sans">
-      
+
       {/* Recommendation System Highlight Banner */}
       {activeRole === "student" && (
         <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-slate-900/5 border border-purple-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

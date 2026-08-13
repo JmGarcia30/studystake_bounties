@@ -15,10 +15,10 @@ export function LandingHero({ onConnectWallet, onExploreBounties }: Props) {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center relative z-10">
-        
+
         {/* Left Column: Product Messaging & CTAs */}
         <div className="lg:col-span-7 space-y-8 text-left">
-          
+
           {/* Product Identity Badge */}
           <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 text-[#8B5CF6] text-xs font-bold uppercase tracking-wider shadow-inner">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -90,7 +90,7 @@ export function LandingHero({ onConnectWallet, onExploreBounties }: Props) {
         {/* Right Column: Layered Live Product Preview */}
         <div className="lg:col-span-5 relative w-full flex items-center justify-center pt-6 lg:pt-0">
           <div className="relative w-full max-w-lg space-y-4">
-            
+
             {/* Card 1: Main Bounty Marketplace Preview Card */}
             <div className="p-6 sm:p-7 rounded-3xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl space-y-4 relative z-20 animate-float-slow hover:border-[#6C5CE7]/60 transition-all">
               <div className="flex items-center justify-between">

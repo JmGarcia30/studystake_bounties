@@ -11,6 +11,7 @@ export function BalancePanel({ address, refreshKey }: Props) {
   const [balance, setBalance] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [manualRefreshKey, setManualRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!address) {
@@ -23,7 +24,7 @@ export function BalancePanel({ address, refreshKey }: Props) {
       .then(setBalance)
       .catch((err) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
-  }, [address, refreshKey]);
+  }, [address, refreshKey, manualRefreshKey]);
 
   return (
     <section className="panel !bg-white !border-slate-200/80 shadow-xs relative overflow-hidden transition-all duration-200">
@@ -48,16 +49,16 @@ export function BalancePanel({ address, refreshKey }: Props) {
       </div>
 
       {!address && <p className="muted text-xs text-slate-500 m-0 font-normal">Connect a wallet to see your balance.</p>}
-      
+
       {address && loading && (
         <div className="flex items-center gap-2 text-slate-600 text-sm py-2">
           <RefreshCw className="w-4 h-4 animate-spin text-[#6C5CE7]" />
           <p className="m-0 text-xs">Loading balance…</p>
         </div>
       )}
-      
+
       {address && error && <p className="error text-rose-600 text-xs mt-2 m-0">{error}</p>}
-      
+
       {address && !loading && !error && balance !== null && (
         <div className="space-y-1">
           <p className="balance text-2xl font-black text-slate-900 tracking-tight m-0">
@@ -65,6 +66,11 @@ export function BalancePanel({ address, refreshKey }: Props) {
           </p>
           <p className="text-[11px] text-slate-500 m-0 font-normal">Available for peer-tutoring micro escrows</p>
         </div>
+      )}
+      {address && (
+        <button onClick={() => setManualRefreshKey((key) => key + 1)} disabled={loading}>
+          Refresh Balance
+        </button>
       )}
     </section>
   );

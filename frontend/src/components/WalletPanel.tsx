@@ -27,8 +27,13 @@ export function WalletPanel({ address, onConnected, onDisconnected }: Props) {
   }
 
   async function handleDisconnect() {
-    await disconnectWallet();
-    onDisconnected();
+    setError(null);
+    try {
+      await disconnectWallet();
+      onDisconnected();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
   }
 
   function copyAddress() {
@@ -74,14 +79,15 @@ export function WalletPanel({ address, onConnected, onDisconnected }: Props) {
               Connected: <code>{address}</code>
             </p>
           </div>
-          
+
           <button
             onClick={handleDisconnect}
             className="w-full flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-semibold rounded-xl text-xs py-2 transition-all cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5 shrink-0" />
-            <span>Disconnect</span>
+            <span>Disconnect Wallet</span>
           </button>
+          {error && <p className="error text-rose-600 text-xs mt-2">{error}</p>}
         </div>
       ) : (
         <div className="space-y-3">

@@ -42,7 +42,7 @@ export function RightPanel({
 
   return (
     <aside className="w-full lg:w-80 shrink-0 space-y-6 font-sans">
-      
+
       {/* 1. Student Profile & Progress Card */}
       <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-5">
         <div className="flex items-center gap-3.5">

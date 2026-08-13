@@ -42,24 +42,24 @@ export function ReputationPanel({ address, refreshKey }: Props) {
       </div>
 
       {!configured && <p className="muted text-xs text-gray-500 m-0">Reputation contract not configured yet.</p>}
-      
+
       {configured && !address && (
         <p className="muted text-xs text-gray-500 m-0">Connect a wallet to see your tutor reputation.</p>
       )}
-      
+
       {configured && address && loading && (
         <div className="flex items-center gap-2 text-gray-600 text-sm py-2">
           <RefreshCw className="w-4 h-4 animate-spin text-cyan-500" />
           <p className="muted text-xs text-gray-500 m-0">Loading reputation…</p>
         </div>
       )}
-      
+
       {configured && address && error && <p className="error text-rose-600 text-xs mt-2 m-0">{error}</p>}
-      
+
       {configured && address && !loading && !error && reputation === null && (
         <p className="muted text-xs text-gray-500 m-0">No completed bounties yet.</p>
       )}
-      
+
       {configured && address && !loading && !error && reputation !== null && (
         <div className="space-y-2">
           <div className="row flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-700">

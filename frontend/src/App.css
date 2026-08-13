@@ -96,6 +96,48 @@
   box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.2);
 }
 
+
+.payment-panel {
+  border-color: rgba(108, 92, 231, 0.35);
+  background: linear-gradient(145deg, #ffffff, #faf9ff);
+}
+
+.payment-form {
+  display: grid;
+  grid-template-columns: minmax(180px, auto) 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.payment-form label {
+  color: #475569;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.payment-form input {
+  min-width: 0;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.payment-form input:focus {
+  border-color: #6c5ce7;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.2);
+}
+
+.payment-form button { grid-column: 2; justify-self: start; }
+.payment-result p { margin-top: 0.5rem; overflow-wrap: anywhere; }
+
+@media (max-width: 640px) {
+  .payment-form { grid-template-columns: 1fr; }
+  .payment-form button { grid-column: 1; width: 100%; }
+}
 .btn-primary {
   padding: 0.625rem 1.25rem;
   border-radius: 0.5rem;

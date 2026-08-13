@@ -7,6 +7,44 @@
 A decentralized micro-task board built on Stellar Soroban for student peer-tutoring, with a
 Vite/React/TypeScript frontend for the Level 2 Yellow Belt submission.
 
+## Level 1 – White Belt
+
+StudyStake includes an easy-to-find, classic Stellar payment flow alongside its Soroban bounty
+features. The frontend uses `@creit.tech/stellar-wallets-kit` (including Freighter) to connect and
+disconnect a wallet, request access, retrieve and display its public key, and sign transactions.
+All account and payment operations use **Stellar Testnet**.
+
+The wallet dashboard displays the native XLM balance from Testnet Horizon, including loading,
+unfunded-account, error, and refresh states. The **Send XLM** card builds a standard
+`Operation.payment` with `Asset.native()`, requests the connected wallet's real transaction
+signature, submits the signed envelope to Horizon, and displays success/failure feedback, the
+actual Horizon transaction hash, and a Stellar Expert Testnet link. No secret key, dummy
+signature, fallback signature, or fabricated hash is used.
+
+### Test the White Belt flow
+
+1. Install [Freighter](https://www.freighter.app/).
+2. Set Freighter to **Testnet**.
+3. Fund the test account with [Friendbot](https://friendbot.stellar.org/).
+4. Run the frontend using the setup commands below.
+5. Select **Connect Wallet**, choose Freighter, and approve wallet access.
+6. Verify that the public key, **Stellar Testnet** badge, and native XLM balance appear.
+7. Enter another valid Testnet `G...` address in **Destination Stellar Address**.
+8. Enter a small amount such as `0.1` XLM and select **Send XLM**.
+9. Review and approve the transaction in Freighter.
+10. Verify **XLM sent successfully**, the real transaction hash, and its Stellar Expert Testnet page.
+
+### Level 1 screenshots (manual capture required)
+
+Create `frontend/public/screenshots/level1/` and add these files only after completing the real
+wallet/Testnet flow. Do not use the existing Soroban screenshots as proof of native XLM payment.
+
+- `wallet-connected.png` — connected public key, Disconnect Wallet, and Stellar Testnet badge.
+- `balance-displayed.png` — the connected account's native XLM balance.
+- `xlm-transaction-approved.png` — Freighter approval or confirmed Testnet payment evidence.
+- `xlm-transaction-result.png` — **XLM sent successfully**, actual hash, amount, and explorer link.
+
+
 ## Problem & Solution
 **Problem:** A computer science student wants to earn income by peer-tutoring but lacks a way to guarantee payment for micro-transactions ($1–$5) without losing profit to payment gateway fees.
 **Solution:** A Soroban smart contract acts as a trustless escrow vault. The buyer locks funds, which are instantly released to the tutor's wallet only when the work is confirmed complete.

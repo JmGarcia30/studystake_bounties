@@ -49,14 +49,14 @@ export function ActivityFeed({ refreshKey, optimisticItems = [] }: Props) {
       </p>
 
       {error && <p className="error text-rose-700 text-xs mt-2 m-0 bg-rose-50 p-2.5 rounded-xl border border-rose-200 font-medium">{error}</p>}
-      
+
       {pending.length === 0 && items.length === 0 && state === "loading" && (
         <div className="flex items-center gap-2 text-slate-600 text-sm py-4">
           <RefreshCw className="w-4 h-4 animate-spin text-[#6C5CE7]" />
           <p className="muted text-xs text-slate-500 m-0">Loading activity…</p>
         </div>
       )}
-      
+
       {pending.length === 0 && items.length === 0 && state !== "loading" && !error && (
         <div className="p-6 text-center rounded-xl bg-slate-50 border border-dashed border-slate-200">
           <Zap className="w-8 h-8 text-slate-400 mx-auto mb-2" />

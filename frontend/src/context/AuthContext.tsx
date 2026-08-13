@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 4. Load profile
       setLoadingStep("loading_profile");
       const profile = await fetchUserProfile(address);
-      
+
       setWalletAddress(address);
       setIsAuthenticated(true);
       localStorage.setItem(CACHED_ADDRESS_KEY, address);

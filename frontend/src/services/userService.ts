@@ -9,7 +9,7 @@ const STORAGE_PREFIX = "studystake_user_profile_";
  */
 export async function fetchUserProfile(walletAddress: string): Promise<UserProfile | null> {
   if (!walletAddress) return null;
-  
+
   // Simulate network delay to match real API behavior
   await new Promise((resolve) => setTimeout(resolve, 200));
 

@@ -22,7 +22,7 @@ export function LandingFeatures() {
   return (
     <section id="features" className="w-full py-20 lg:py-28 px-6 border-t border-slate-800/80 bg-[#0B1120] relative">
       <div className="max-w-6xl mx-auto space-y-16">
-        
+
         {/* Header */}
         <div className="text-center space-y-4 max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-[#8B5CF6] text-xs font-bold uppercase tracking-wider">

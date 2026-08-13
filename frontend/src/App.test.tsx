@@ -134,5 +134,7 @@ describe("App & Auth Flow", () => {
 
     const elements = await screen.findAllByText("Alex Scholar");
     expect(elements.length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Send XLM" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/100\.0000000 xlm/i)).toBeInTheDocument());
   });
 });

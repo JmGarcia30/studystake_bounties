@@ -11,6 +11,7 @@ import { ContractPanel } from "./components/ContractPanel";
 import { StatusPanel } from "./components/StatusPanel";
 import { ActivityFeed } from "./components/ActivityFeed";
 import { ReputationPanel } from "./components/ReputationPanel";
+import { SendXlmPanel } from "./components/SendXlmPanel";
 import type { TxStatus } from "./lib/contract";
 import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -51,6 +52,14 @@ function DashboardLayout() {
     setRefreshKey((k) => k + 1);
   }
 
+  async function handleDisconnected() {
+    await disconnectWallet();
+    setTxStatus("idle");
+    setTxHash(undefined);
+    setTxError(undefined);
+    setOptimisticActivity([]);
+  }
+
   function handleActivity(activity: OptimisticActivityInput) {
     setOptimisticActivity((prev) =>
       [...prev, createOptimisticActivity(activity)].slice(-MAX_OPTIMISTIC_ITEMS)
@@ -78,7 +87,7 @@ function DashboardLayout() {
           onRoleChange={updateRole}
           onTabChange={setActiveTab}
           onConnected={() => connectAndVerifyWallet()}
-          onDisconnected={() => disconnectWallet()}
+          onDisconnected={handleDisconnected}
           onOpenNotifications={() => setNotificationsOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
         />
@@ -91,6 +100,7 @@ function DashboardLayout() {
               <div className="flex-1 space-y-6 min-w-0">
                 <HeroBanner onExploreClick={() => setActiveTab("marketplace")} />
                 <StatBar bountyCount={null} />
+                <SendXlmPanel address={walletAddress} onSuccess={handleSuccess} />
                 <BountyMarketplace
                   activeRole={role}
                   onSelectBountyPreset={handleSelectBountyPreset}
@@ -105,7 +115,7 @@ function DashboardLayout() {
                 txHash={txHash}
                 txError={txError}
                 onConnected={() => connectAndVerifyWallet()}
-                onDisconnected={() => disconnectWallet()}
+                onDisconnected={handleDisconnected}
               />
             </div>
           )}
@@ -126,7 +136,7 @@ function DashboardLayout() {
                 txHash={txHash}
                 txError={txError}
                 onConnected={() => connectAndVerifyWallet()}
-                onDisconnected={() => disconnectWallet()}
+                onDisconnected={handleDisconnected}
               />
             </div>
           )}
@@ -152,7 +162,7 @@ function DashboardLayout() {
                 txHash={txHash}
                 txError={txError}
                 onConnected={() => connectAndVerifyWallet()}
-                onDisconnected={() => disconnectWallet()}
+                onDisconnected={handleDisconnected}
               />
             </div>
           )}
@@ -171,7 +181,7 @@ function DashboardLayout() {
                 txHash={txHash}
                 txError={txError}
                 onConnected={() => connectAndVerifyWallet()}
-                onDisconnected={() => disconnectWallet()}
+                onDisconnected={handleDisconnected}
               />
             </div>
           )}
@@ -190,7 +200,7 @@ function DashboardLayout() {
                 txHash={txHash}
                 txError={txError}
                 onConnected={() => connectAndVerifyWallet()}
-                onDisconnected={() => disconnectWallet()}
+                onDisconnected={handleDisconnected}
               />
             </div>
           )}
