@@ -2,6 +2,8 @@ import { createContext, useState, useEffect, useCallback, type ReactNode } from 
 import type { UserProfile, UserRole, AuthLoadingStep } from "../types/user";
 import { stellarAdapter, createAuthChallenge, verifyWalletSignature } from "../lib/stellar";
 import { fetchUserProfile, saveUserProfile } from "../services/userService";
+import { logWalletInteraction } from "../services/communityService";
+import { trackEvent } from "../lib/analytics";
 
 export interface AuthContextValue {
   walletAddress: string | null;
@@ -91,6 +93,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setUserProfile(null);
       }
+
+      trackEvent("wallet_connected", { source: "wallet_auth" });
+      void logWalletInteraction({
+        walletAddress: address,
+        interactionType: "wallet_connected",
+        metadata: { source: "wallet_auth", app_area: "authentication" },
+      }).catch((error) => console.warn("Wallet connection evidence was not recorded.", error));
     } catch (err: any) {
       setAuthError(err.message || "Failed to authenticate wallet");
       setIsAuthenticated(false);
@@ -100,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const disconnectWallet = async () => {
+    const disconnectedAddress = walletAddress;
     setLoadingStep("idle");
     try {
       await stellarAdapter.disconnect();
@@ -111,6 +121,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserProfile(null);
       setRole("student");
       localStorage.removeItem(CACHED_ADDRESS_KEY);
+      if (disconnectedAddress) {
+        void logWalletInteraction({
+          walletAddress: disconnectedAddress,
+          interactionType: "wallet_disconnected",
+          metadata: { source: "wallet_auth", app_area: "authentication" },
+        }).catch((error) => console.warn("Wallet disconnect evidence was not recorded.", error));
+      }
     }
   };
 

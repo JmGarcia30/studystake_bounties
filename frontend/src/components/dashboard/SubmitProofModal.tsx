@@ -3,6 +3,8 @@ import { X, Send, Link as LinkIcon, FileText, CheckCircle2, Loader2, AlertCircle
 import type { Bounty } from "../../types/bounty";
 import { submitBountyProof } from "../../services/bountyService";
 import { useAuth } from "../../hooks/useAuth";
+import { logWalletInteraction } from "../../services/communityService";
+import { trackEvent } from "../../lib/analytics";
 
 interface Props {
   bounty: Bounty;
@@ -34,13 +36,25 @@ export function SubmitProofModal({ bounty, onClose, onSuccess }: Props) {
     setError(null);
 
     try {
-      await submitBountyProof(
-        bounty.id,
+      await submitBountyProof({
+        bountyId: bounty.id,
+        contributor: {
+          walletAddress,
+          displayName: userProfile?.name || "Student Scholar",
+        },
+        proofUrl: proofUrl.trim(),
+        notes: notes.trim(),
+      });
+      trackEvent("proof_submitted", { bounty_id: bounty.id, bounty_category: bounty.category });
+      void logWalletInteraction({
         walletAddress,
-        userProfile?.name || "Student Scholar",
-        proofUrl.trim(),
-        notes.trim()
-      );
+        interactionType: "proof_submitted",
+        contractEscrowId: bounty.escrow.contractEscrowId,
+        metadata: {
+          source: "bounty_marketplace", app_area: "proof_submission", bounty_id: bounty.id,
+          bounty_title: bounty.title, bounty_category: bounty.category,
+        },
+      }).catch((logError) => console.warn("Proof submission evidence was not recorded.", logError));
       setSubmittedSuccess(true);
       setTimeout(() => {
         onSuccess();
@@ -79,7 +93,7 @@ export function SubmitProofModal({ bounty, onClose, onSuccess }: Props) {
             </div>
             <h4 className="text-base font-bold text-slate-900">Proof Submitted Successfully!</h4>
             <p className="text-xs text-slate-500 max-w-xs mx-auto">
-              Your solution has been submitted to {bounty.sponsor} for review.
+              Your solution has been submitted to {bounty.creator.displayName} for review.
             </p>
           </div>
         ) : (
@@ -146,7 +160,7 @@ export function SubmitProofModal({ bounty, onClose, onSuccess }: Props) {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Submitting Proof…</span>
+                    <span>Submitting Proof{"\u2026"}</span>
                   </>
                 ) : (
                   <>

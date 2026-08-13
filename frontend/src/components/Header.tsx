@@ -27,7 +27,7 @@ export function Header({
   onOpenNotifications,
   onOpenSettings,
 }: Props) {
-  const { userProfile, disconnectWallet, connectAndVerifyWallet, loadingStep } = useAuth();
+  const { userProfile, connectAndVerifyWallet, loadingStep } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isBusy = loadingStep !== "idle";
@@ -40,8 +40,7 @@ export function Header({
     }
   }
 
-  async function handleDisconnect() {
-    await disconnectWallet();
+  function handleDisconnect() {
     onDisconnected();
   }
 
@@ -149,7 +148,7 @@ export function Header({
               title="Click to disconnect wallet"
             >
               <Wallet className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{address.slice(0, 6)}…{address.slice(-4)}</span>
+              <span>{address.slice(0, 6)}{"\u2026"}{address.slice(-4)}</span>
               <LogOut className="w-3 h-3 ml-1 text-slate-400 hover:text-rose-600" />
             </button>
           ) : (
@@ -159,7 +158,7 @@ export function Header({
               className="text-xs bg-[#6C5CE7] hover:bg-[#5B4BD6] text-white border-purple-400/30 shadow-xs font-semibold py-2 px-3.5 rounded-xl flex items-center gap-1.5"
             >
               <Wallet className="w-3.5 h-3.5" />
-              {isBusy ? "Connecting…" : "Connect"}
+              {isBusy ? "Connecting\u2026" : "Connect"}
             </button>
           )}
         </div>

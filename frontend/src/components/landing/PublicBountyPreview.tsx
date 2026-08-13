@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Tag, ShieldCheck, X, ArrowRight, Coins, Lock } from "lucide-react";
+import { Search, Tag, ShieldCheck, X, ArrowRight, Coins, Lock, AlertCircle } from "lucide-react";
 import type { Bounty } from "../../types/bounty";
 import { fetchBounties } from "../../services/bountyService";
 
@@ -12,12 +12,14 @@ export function PublicBountyPreview({ onConnectWallet }: Props) {
   const [selectedFilter, setSelectedFilter] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activePreviewBounty, setActivePreviewBounty] = useState<Bounty | null>(null);
 
   const filters = ["All", "Development", "Design", "Tutoring", "Writing", "Research"];
 
   useEffect(() => {
     setIsLoading(true);
+    setLoadError(null);
     fetchBounties("All", searchQuery)
       .then((items) => {
         const filtered = items.filter((b) => {
@@ -36,7 +38,9 @@ export function PublicBountyPreview({ onConnectWallet }: Props) {
         });
         setBounties(filtered);
       })
-      .catch(console.error)
+      .catch((error: unknown) => {
+        setLoadError(error instanceof Error ? error.message : "Bounty preview could not be loaded.");
+      })
       .finally(() => setIsLoading(false));
   }, [selectedFilter, searchQuery]);
 
@@ -93,6 +97,11 @@ export function PublicBountyPreview({ onConnectWallet }: Props) {
           <div className="py-16 text-center text-slate-300 text-xs font-semibold">
             Loading preview bounties…
           </div>
+        ) : loadError ? (
+          <div role="alert" className="py-16 text-center text-rose-300 text-xs font-semibold space-y-2">
+            <AlertCircle className="w-6 h-6 mx-auto" />
+            <p>{loadError}</p>
+          </div>
         ) : bounties.length === 0 ? (
           <div className="py-16 text-center text-slate-300 text-xs font-medium">
             No matching bounties found for this filter.
@@ -126,7 +135,7 @@ export function PublicBountyPreview({ onConnectWallet }: Props) {
                   <div className="flex items-center gap-4 text-xs text-slate-200 font-medium">
                     <span className="flex items-center gap-1.5">
                       <Tag className="w-3.5 h-3.5 text-slate-400" />
-                      Sponsor: <strong className="text-white font-bold">{b.sponsor}</strong>
+                      Sponsor: <strong className="text-white font-bold">{b.creator.displayName}</strong>
                     </span>
                     <span className="flex items-center gap-1.5">
                       <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
@@ -186,7 +195,7 @@ export function PublicBountyPreview({ onConnectWallet }: Props) {
                 </div>
                 <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
                   <span className="block text-slate-300 text-[11px] font-semibold mb-0.5">Verified Sponsor</span>
-                  <span className="text-xs font-bold text-white">{activePreviewBounty.sponsor}</span>
+                  <span className="text-xs font-bold text-white">{activePreviewBounty.creator.displayName}</span>
                 </div>
               </div>
             </div>

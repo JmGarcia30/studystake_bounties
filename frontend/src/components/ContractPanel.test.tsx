@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ContractPanel } from "./ContractPanel";
 import { callContract } from "../lib/contract";
+import { logWalletInteraction } from "../services/communityService";
 
 vi.mock("../lib/config", () => ({
   getConfig: () => ({
@@ -16,7 +17,7 @@ vi.mock("../lib/config", () => ({
 }));
 
 // contract.ts's real implementation pulls in the wallet-kit (freighter-api,
-// etc.) which doesn't load in jsdom — stub it out entirely, same as the
+// etc.) which does not load in jsdom -- stub it out entirely, same as the
 // component only ever needs callContract/readContract/BOUNTY_STATUS_LABELS.
 vi.mock("../lib/contract", () => ({
   callContract: vi.fn(),
@@ -24,7 +25,10 @@ vi.mock("../lib/contract", () => ({
   BOUNTY_STATUS_LABELS: ["Open", "Accepted", "Disputed", "Completed"],
 }));
 
+vi.mock("../services/communityService", () => ({ logWalletInteraction: vi.fn().mockResolvedValue(undefined) }));
+
 const mockCallContract = vi.mocked(callContract);
+const mockLogWalletInteraction = vi.mocked(logWalletInteraction);
 
 afterEach(() => {
   cleanup();
@@ -60,19 +64,19 @@ describe("ContractPanel", () => {
     expect(screen.getByRole("button", { name: /refresh bounty count/i })).toBeEnabled();
   });
 
-  it("shows a Creating… label and disables other write actions while create_bounty is in flight", async () => {
+  it("shows a Creating... label and disables other write actions while create_bounty is in flight", async () => {
     mockCallContract.mockReturnValue(new Promise(() => {}));
     renderPanel(ADDRESS);
 
     fireEvent.click(screen.getByRole("button", { name: /create bounty/i }));
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /creating…/i })).toBeInTheDocument(),
+      expect(screen.getByRole("button", { name: /creating/i })).toBeInTheDocument(),
     );
     expect(screen.getByRole("button", { name: /initialize/i })).toBeDisabled();
   });
 
-  it("shows an Accepting… label while accept_bounty is in flight", async () => {
+  it("shows an Accepting... label while accept_bounty is in flight", async () => {
     mockCallContract.mockReturnValue(new Promise(() => {}));
     renderPanel(ADDRESS);
 
@@ -80,11 +84,11 @@ describe("ContractPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /accept bounty/i }));
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /accepting…/i })).toBeInTheDocument(),
+      expect(screen.getByRole("button", { name: /accepting/i })).toBeInTheDocument(),
     );
   });
 
-  it("shows a Releasing… label while release_funds is in flight", async () => {
+  it("shows a Releasing... label while release_funds is in flight", async () => {
     mockCallContract.mockReturnValue(new Promise(() => {}));
     renderPanel(ADDRESS);
 
@@ -93,7 +97,7 @@ describe("ContractPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /release funds/i }));
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /releasing…/i })).toBeInTheDocument(),
+      expect(screen.getByRole("button", { name: /releasing/i })).toBeInTheDocument(),
     );
   });
 
@@ -105,6 +109,9 @@ describe("ContractPanel", () => {
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
     expect(onTxUpdate).toHaveBeenCalledWith("success", "abc123");
+    expect(mockLogWalletInteraction).toHaveBeenCalledWith(expect.objectContaining({
+      walletAddress: ADDRESS, interactionType: "escrow_created", transactionHash: "abc123",
+    }));
   });
 
   it("re-enables actions and shows a friendly error when a write action fails", async () => {

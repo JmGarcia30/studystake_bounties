@@ -7,6 +7,7 @@ import { stellarAdapter } from "./lib/stellar";
 import { getXlmBalance } from "./lib/horizon";
 import { useEventStream } from "./hooks/useEventStream";
 import { fetchUserProfile, saveUserProfile } from "./services/userService";
+import { logWalletInteraction } from "./services/communityService";
 
 vi.mock("@creit.tech/stellar-wallets-kit", () => ({
   StellarWalletsKit: {
@@ -47,6 +48,11 @@ vi.mock("./services/userService", () => ({
   saveUserProfile: vi.fn().mockImplementation(async (p) => p),
 }));
 
+vi.mock("./services/communityService", () => ({
+  logWalletInteraction: vi.fn().mockResolvedValue(undefined),
+  submitUserFeedback: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("./lib/contract", () => ({
   callContract: vi.fn(),
   readContract: vi.fn(),
@@ -69,6 +75,7 @@ vi.mock("./hooks/useEventStream", () => ({
 const mockConnect = vi.mocked(stellarAdapter.connect);
 const mockFetchProfile = vi.mocked(fetchUserProfile);
 const mockSaveProfile = vi.mocked(saveUserProfile);
+const mockLogWalletInteraction = vi.mocked(logWalletInteraction);
 const mockGetXlmBalance = vi.mocked(getXlmBalance);
 const mockUseEventStream = vi.mocked(useEventStream);
 
@@ -82,6 +89,25 @@ afterEach(() => {
 });
 
 describe("App & Auth Flow", () => {
+  it("logs successful wallet connect and disconnect with the original address", async () => {
+    mockConnect.mockResolvedValue(ADDRESS);
+    mockGetXlmBalance.mockResolvedValue("100.0000000");
+    mockFetchProfile.mockResolvedValue({
+      walletAddress: ADDRESS, name: "Alex Scholar", username: "@alex", bio: "Tester",
+      role: "student", createdAt: new Date().toISOString(),
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getAllByRole("button", { name: /Connect Stellar Wallet/i })[0]);
+
+    await waitFor(() => expect(mockLogWalletInteraction).toHaveBeenCalledWith(expect.objectContaining({
+      walletAddress: ADDRESS, interactionType: "wallet_connected",
+    })));
+    fireEvent.click(await screen.findByTitle("Click to disconnect wallet"));
+    await waitFor(() => expect(mockLogWalletInteraction).toHaveBeenCalledWith(expect.objectContaining({
+      walletAddress: ADDRESS, interactionType: "wallet_disconnected",
+    })));
+  });
   it("renders LandingPage by default for unauthenticated public visitors", () => {
     mockFetchProfile.mockResolvedValue(null);
     render(<App />);
