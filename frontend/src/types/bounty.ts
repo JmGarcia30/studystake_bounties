@@ -48,3 +48,26 @@ export interface CreateProofSubmissionInput {
   proofUrl: string;
   notes: string;
 }
+
+export type WalletInteractionType =
+  | "wallet_connected"
+  | "wallet_disconnected"
+  | "payment_submitted"
+  | "escrow_created"
+  | "bounty_accepted"
+  | "proof_submitted"
+  | "reward_released";
+
+export interface WalletInteractionInput {
+  walletAddress: WalletAddress;
+  interactionType: WalletInteractionType;
+  transactionHash?: TransactionHash | null;
+  contractEscrowId?: ContractEscrowId | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface UserFeedbackInput {
+  walletAddress?: WalletAddress | null;
+  rating: number;
+  feedback: string;
+}

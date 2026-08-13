@@ -4,6 +4,7 @@ import type { Bounty, BountyListQuery, CreateProofSubmissionInput, ProofSubmissi
 export interface BountyRepository {
   listBounties(query?: BountyListQuery): Promise<Bounty[]>;
   getBountyById(id: number): Promise<Bounty | null>;
+  saveBounty(bounty: Bounty): Promise<Bounty>;
   createProofSubmission(input: CreateProofSubmissionInput): Promise<ProofSubmission>;
   listProofSubmissionsByContributor(address: WalletAddress): Promise<ProofSubmission[]>;
 }

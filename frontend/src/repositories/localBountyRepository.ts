@@ -13,6 +13,11 @@ const SEED_BOUNTIES: readonly Bounty[] = [
 ];
 
 interface StorageLike { getItem(key: string): string | null; setItem(key: string, value: string): void; }
+class MemoryStorage implements StorageLike {
+  private readonly values = new Map<string, string>();
+  getItem(key: string): string | null { return this.values.get(key) ?? null; }
+  setItem(key: string, value: string): void { this.values.set(key, value); }
+}
 function wait(ms: number): Promise<void> { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
 function readSubmissions(storage: StorageLike): ProofSubmission[] {
@@ -45,8 +50,8 @@ export class LocalBountyRepository implements BountyRepository {
   private readonly storage: StorageLike;
   private readonly delayMs: number;
 
-  constructor(storage: StorageLike = window.localStorage, delayMs = MOCK_DELAY_MS) {
-    this.storage = storage;
+  constructor(storage?: StorageLike, delayMs = MOCK_DELAY_MS) {
+    this.storage = storage ?? globalThis.localStorage ?? new MemoryStorage();
     this.delayMs = delayMs;
   }
 
@@ -64,6 +69,10 @@ export class LocalBountyRepository implements BountyRepository {
   async getBountyById(id: number): Promise<Bounty | null> {
     await wait(this.delayMs);
     return SEED_BOUNTIES.find((bounty) => bounty.id === id) ?? null;
+  }
+
+  async saveBounty(bounty: Bounty): Promise<Bounty> {
+    throw new Error(`Local bounty metadata is read-only; bounty #${bounty.id} was not saved.`);
   }
 
   async createProofSubmission(input: CreateProofSubmissionInput): Promise<ProofSubmission> {
