@@ -4,9 +4,12 @@ Use this document as the final assembly checklist for the StudyStake Bounties Le
 
 ## Live demo URL
 
-- Production URL: `TODO`
-- Deployment provider/project: `TODO`
-- Deployment date and release: `TODO`
+- Production URL (verify in a signed-out browser): `TODO`
+- Vercel project/dashboard URL: `TODO`
+- Custom domain, if used: `TODO`
+- Deployment date (UTC): `TODO`
+- Production Git commit or release tag: `TODO`
+- Successful production deployment screenshot: `TODO`
 - Network: Stellar Testnet
 
 ## Public GitHub repository
@@ -17,10 +20,11 @@ Use this document as the final assembly checklist for the StudyStake Bounties Le
 
 ## Contract deployment address
 
-- StudyStake Bounties contract: `CCEBMZKEH4GBRZVYDDGMSXWCHTL57ZIG6YRVZWRHTU4BP6QZVWQPXI7I`
+- StudyStake Bounties contract: `CCRBVQZ7IRASOIAQOWYYXV4UUJ2FPAVWMLULQW5KQBILXOXXFOMRXFA3`
 - Native-XLM testnet SAC: `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`
-- Reputation contract: record `VITE_REPUTATION_CONTRACT_ID` from the production deployment, or state that it is not configured.
-- Contract explorer link: `TODO`
+- Reputation contract: `CBFNKF5HOW5XJNH3DLTYUQADZI5C53BCDDLDYQ2PUFJE2IYAOLG7C32W`
+- Bounties contract explorer link: `TODO`
+- Reputation contract explorer link: `TODO`
 - Representative transaction links: `TODO`
 
 ## Supabase evidence screenshots
@@ -108,7 +112,9 @@ Use aggregate results in the public submission. Obtain consent before publishing
 ## Final submission checklist
 
 - [ ] Production deployment is reachable from a signed-out browser.
-- [ ] Production environment variables contain public values only.
+- [ ] Vercel Root Directory is `frontend` and the successful build output is `dist`.
+- [ ] Production environment variables contain public values only and match `docs/FRONTEND_DEPLOYMENT.md`.
+- [ ] The production release identifier matches the submitted Git commit/tag.
 - [ ] Contract and token addresses match the tested deployment.
 - [ ] Supabase RLS is enabled and evidence inserts work.
 - [ ] At least 10 real users are documented.

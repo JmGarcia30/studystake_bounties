@@ -23,9 +23,9 @@ StudyStake Bounties is a Stellar Testnet marketplace for educational micro-bount
 | Item | Value |
 |---|---|
 | Network | Stellar Testnet |
-| Bounties contract | `CCEBMZKEH4GBRZVYDDGMSXWCHTL57ZIG6YRVZWRHTU4BP6QZVWQPXI7I` |
+| Bounties contract | `CCRBVQZ7IRASOIAQOWYYXV4UUJ2FPAVWMLULQW5KQBILXOXXFOMRXFA3` |
 | Native-XLM Testnet SAC | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` |
-| Reputation contract | Set with `VITE_REPUTATION_CONTRACT_ID` when deployed |
+| Reputation contract | `CBFNKF5HOW5XJNH3DLTYUQADZI5C53BCDDLDYQ2PUFJE2IYAOLG7C32W` |
 | RPC | `https://soroban-testnet.stellar.org` |
 | Horizon | `https://horizon-testnet.stellar.org` |
 
@@ -40,6 +40,7 @@ frontend/                            Vite, React, and TypeScript application
 docs/SUPABASE.md                     Persistence schema/policy and evidence queries
 docs/LEVEL4_SUBMISSION.md            Final submission evidence template
 docs/PRODUCTION_SMOKE_TEST.md        Post-deployment validation checklist
+docs/FRONTEND_DEPLOYMENT.md          Vercel production deployment runbook
 ```
 
 ## Requirements
@@ -133,6 +134,9 @@ Use:
 - `docs/LEVEL4_SUBMISSION.md` to assemble URLs, screenshots, 10-user results, feedback summary, demo video, limitations, and final checklist.
 
 ## Production deployment
+
+The recommended frontend hosting target is Vercel with the project Root Directory set to `frontend`. See `docs/FRONTEND_DEPLOYMENT.md` for exact settings, production environment values, deployment steps, and rollback guidance.
+
 
 1. Run all frontend verification commands.
 2. Create a production project on a static Vite-compatible host.

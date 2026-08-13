@@ -5,12 +5,25 @@ Run this checklist against the deployed URL after every production release. Reco
 ## Test record
 
 - Production URL: `TODO`
-- Release/commit: `TODO`
+- Vercel deployment/dashboard URL: `TODO`
+- Release/commit (`VITE_APP_RELEASE`): `TODO`
 - Date and tester: `TODO`
 - Browser/device: `TODO`
 - Stellar network: Testnet
 - Result: `PASS / FAIL`
 
+## Deployment configuration checks
+
+- [ ] Vercel project Root Directory is `frontend`.
+- [ ] Framework is Vite, build command is `npm run build`, and output directory is `dist`.
+- [ ] The deployment is built from the intended public Git commit/production branch.
+- [ ] All required variables in `docs/FRONTEND_DEPLOYMENT.md` are set for Production.
+- [ ] Contract IDs match `.deployments/testnet-latest.json`.
+- [ ] No service-role key, wallet secret, Sentry auth token, or private credential is present in a `VITE_` variable.
+- [ ] The production build log has no missing-variable or TypeScript errors.
+- [ ] HTTPS is valid and the page loads in a signed-out/private browser.
+- [ ] Refresh the production URL and a test deep link; both resolve to the SPA rather than a 404.
+- [ ] If environment variables changed, a new deployment was created afterward.
 ## Preconditions
 
 - Use a funded Stellar Testnet wallet and a second valid Testnet destination address.
@@ -102,6 +115,10 @@ Run this checklist against the deployed URL after every production release. Reco
 ## Sign-off
 
 - [ ] All critical flows passed.
+- [ ] Production URL, Vercel project, deployment date, and release commit are recorded in `docs/LEVEL4_SUBMISSION.md`.
+- [ ] Successful deployment and signed-out homepage screenshots were captured.
+- [ ] The last known-good rollback target is identifiable in deployment history.
+- [ ] Rollback target (last known-good deployment) is identifiable in deployment history.
 - [ ] Any failure has an issue link and owner.
 - [ ] Evidence screenshots were added to the submission packet.
 - Tester/sign-off: `TODO`
