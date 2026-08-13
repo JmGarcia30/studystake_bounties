@@ -10,6 +10,7 @@ export function BalancePanel({ address, refreshKey }: Props) {
   const [balance, setBalance] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [manualRefreshKey, setManualRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!address) {
@@ -22,7 +23,7 @@ export function BalancePanel({ address, refreshKey }: Props) {
       .then(setBalance)
       .catch((err) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
-  }, [address, refreshKey]);
+  }, [address, refreshKey, manualRefreshKey]);
 
   return (
     <section className="panel">
@@ -32,6 +33,11 @@ export function BalancePanel({ address, refreshKey }: Props) {
       {address && error && <p className="error">{error}</p>}
       {address && !loading && !error && balance !== null && (
         <p className="balance">{balance} XLM</p>
+      )}
+      {address && (
+        <button onClick={() => setManualRefreshKey((key) => key + 1)} disabled={loading}>
+          Refresh Balance
+        </button>
       )}
     </section>
   );

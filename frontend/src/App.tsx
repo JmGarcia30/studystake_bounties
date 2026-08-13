@@ -6,6 +6,7 @@ import { ContractPanel } from "./components/ContractPanel";
 import { StatusPanel } from "./components/StatusPanel";
 import { ActivityFeed } from "./components/ActivityFeed";
 import { ReputationPanel } from "./components/ReputationPanel";
+import { SendXlmPanel } from "./components/SendXlmPanel";
 import type { TxStatus } from "./lib/contract";
 import {
   createOptimisticActivity,
@@ -36,6 +37,14 @@ function App() {
     setRefreshKey((k) => k + 1);
   }
 
+  function handleDisconnected() {
+    setAddress(null);
+    setTxStatus("idle");
+    setTxHash(undefined);
+    setTxError(undefined);
+    setOptimisticActivity([]);
+  }
+
   function handleActivity(activity: OptimisticActivityInput) {
     setOptimisticActivity((prev) =>
       [...prev, createOptimisticActivity(activity)].slice(-MAX_OPTIMISTIC_ITEMS),
@@ -46,7 +55,7 @@ function App() {
     <div className="app">
       <header>
         <h1>StudyStake Bounties</h1>
-        <p className="muted">Testnet escrow demo for the Stellar Yellow Belt submission.</p>
+        <p className="muted">Stellar Testnet wallet, native XLM payments, and bounty escrow.</p>
       </header>
 
       <main>
@@ -54,11 +63,12 @@ function App() {
           <WalletPanel
             address={address}
             onConnected={setAddress}
-            onDisconnected={() => setAddress(null)}
+            onDisconnected={handleDisconnected}
           />
           <BalancePanel address={address} refreshKey={refreshKey} />
           <ReputationPanel address={address} refreshKey={refreshKey} />
         </div>
+        <SendXlmPanel address={address} onSuccess={handleSuccess} />
         <ContractPanel
           address={address}
           onTxUpdate={handleTxUpdate}

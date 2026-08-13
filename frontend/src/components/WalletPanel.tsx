@@ -25,8 +25,13 @@ export function WalletPanel({ address, onConnected, onDisconnected }: Props) {
   }
 
   async function handleDisconnect() {
-    await disconnectWallet();
-    onDisconnected();
+    setError(null);
+    try {
+      await disconnectWallet();
+      onDisconnected();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
   }
 
   return (
@@ -38,7 +43,8 @@ export function WalletPanel({ address, onConnected, onDisconnected }: Props) {
           <p className="address">
             Connected: <code>{address}</code>
           </p>
-          <button onClick={handleDisconnect}>Disconnect</button>
+          <button onClick={handleDisconnect}>Disconnect Wallet</button>
+          {error && <p className="error">{error}</p>}
         </>
       ) : (
         <>

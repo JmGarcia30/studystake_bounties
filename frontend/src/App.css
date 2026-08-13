@@ -56,6 +56,28 @@ header p {
   flex-wrap: wrap;
 }
 
+.payment-panel { border-color: var(--accent-border); }
+
+.payment-form {
+  display: grid;
+  grid-template-columns: minmax(170px, auto) 1fr;
+  gap: 10px 12px;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.payment-form input {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+}
+
+.payment-form button { grid-column: 2; justify-self: start; }
+.payment-result p { margin-top: 8px; overflow-wrap: anywhere; }
+
 .row input {
   flex: 1;
   min-width: 120px;
@@ -171,6 +193,9 @@ button:disabled {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
+
+  .payment-form { grid-template-columns: 1fr; }
+  .payment-form button { grid-column: 1; }
   color: #d9a441;
   border: 1px solid #d9a441;
   border-radius: 10px;

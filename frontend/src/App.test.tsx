@@ -93,6 +93,13 @@ describe("App", () => {
     expect(screen.getByText(ADDRESS)).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText(/100\.0000000 xlm/i)).toBeInTheDocument());
     expect(screen.getByRole("button", { name: /^create bounty$/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /disconnect wallet/i }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /^connect wallet$/i })).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(ADDRESS)).not.toBeInTheDocument();
+    expect(screen.queryByText(/100\.0000000 xlm/i)).not.toBeInTheDocument();
   });
 
   it("runs a create_bounty transaction through the full App wiring", async () => {

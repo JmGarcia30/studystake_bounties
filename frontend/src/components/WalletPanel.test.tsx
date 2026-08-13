@@ -71,7 +71,7 @@ describe("WalletPanel", () => {
     renderPanel(ADDRESS);
     expect(screen.getByText(ADDRESS)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /disconnect/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /connect wallet/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^connect wallet$/i })).not.toBeInTheDocument();
   });
 
   it("calls disconnectWallet and onDisconnected when Disconnect is clicked", async () => {
