@@ -16,6 +16,10 @@ StudyStake Bounties is a Stellar Testnet marketplace for educational micro-bount
 
 ![StudyStake CI/CD](docs/screenshots/cicd.png)
 
+### Transaction Hash
+
+![StudyStake Transaction Hash](docs/screenshots/transaction-hash.png)
+
 ### Test Output
 
 ![StudyStake Tests](docs/screenshots/tests.png)
