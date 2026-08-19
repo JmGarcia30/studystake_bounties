@@ -6,11 +6,25 @@ StudyStake Bounties is a Stellar Testnet marketplace for educational micro-bount
 
 > This MVP uses Stellar Testnet. Do not use mainnet funds or place secret keys, Supabase service-role keys, Sentry auth tokens, or other secrets in `VITE_` variables.
 
-## StudyStake Screenshots and Video
+## Submission Screenshots
 
-View the product UI screenshots, mobile responsive design captures, analytics setup, and demo walkthrough videos:
+### Mobile Responsive UI
 
-📁 **[Google Drive Folder — StudyStake Screenshots and Video](https://drive.google.com/drive/folders/1cnY5wSDLDIY0rMTPq7BmYrrUxvYiIzho?usp=sharing)**
+![StudyStake Mobile UI](docs/screenshots/mobile-ui.png)
+
+### CI/CD Pipeline
+
+![StudyStake CI/CD](docs/screenshots/cicd.png)
+
+### Test Output
+
+![StudyStake Tests](docs/screenshots/tests.png)
+
+### Demo Video
+
+[Watch the StudyStake Demo](https://drive.google.com/drive/folders/1hj2Dnc5bKjlIFXl0sL11XfmNNl0xOFr3)
+
+📁 **[Google Drive Folder — Screenshots & Video Demo](https://drive.google.com/drive/folders/1cnY5wSDLDIY0rMTPq7BmYrrUxvYiIzho?usp=sharing)**
 
 ## Level 4 MVP features
 
